@@ -1,5 +1,5 @@
 from flask import Flask, session, request, url_for, render_template, redirect, \
-jsonify, make_response, flash, abort
+jsonify, make_response, flash, abort, Response
 import os
 from functools import wraps
 from requests_oauthlib import OAuth2Session
@@ -7,6 +7,7 @@ import redis
 import json
 import binascii
 from math import floor
+import datetime
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY", "qdaopdsjDJ9u&çed&ndlnad&pjéà&jdndqld")
@@ -466,6 +467,106 @@ def plugin_animu(server_id):
         enabled_plugins=enabled_plugins
         )
 
+@app.route('/dashboard/<int:server_id>/logs')
+@require_auth
+@require_bot_admin
+@server_check
+def plugin_logs(server_id):
+    disable = request.args.get('disable')
+    if disable:
+        db.srem('plugins:{}'.format(server_id), 'Logs')
+        return redirect(url_for('dashboard', server_id=server_id))
+
+    db.sadd('plugins:{}'.format(server_id), 'Logs')
+
+    servers = session['guilds']
+    server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
+    enabled_plugins = db.smembers('plugins:{}'.format(server_id))
+
+    logs = db.lrange('Logs.{}:logs'.format(server_id), start=0, end=100)
+
+    return render_template('plugin-logs.html',
+            server=server,
+            enabled_plugins=enabled_plugins,
+            logs = logs
+            )
+
+@app.route('/logs/<int:server_id>')
+def logs_homepage(server_id):
+    json = request.args.get('json', None)
+    servers = db.smembers('servers')
+    servers = [server for server in servers if 'Logs' in db.smembers('plugins:{}'.format(
+        server
+        ))]
+    if str(server_id) not in servers:
+        return redirect(url_for('index'))
+    server = {
+        'id': server_id,
+        'icon': db.get('server:{}:icon'.format(server_id)),
+        'name': db.get('server:{}:name'.format(server_id))
+    }
+    payload = []
+    dates = list(db.smembers('Logs.{}:message_logs'.format(server_id)))
+    for date in dates:
+        info = {
+                'dt': date,
+                'channels':list(db.smembers('Logs.{}:message_logs:{}'.format(server_id, date)))
+                }
+        payload.append(info)
+    if json is not None:
+        return jsonify({
+            'number': len(payload),
+            'items': payload
+            })
+    else:
+        return render_template('logs-homepage.html', payload=payload, server=server)
+
+@app.route('/message_logs/<int:server_id>/<string:dt>/<string:channel>')
+def message_logs(server_id, dt, channel):
+    json_format = request.args.get('json', None)
+    txt = request.args.get('txt', None)
+    servers = db.smembers('servers')
+    servers = [server for server in servers if 'Logs' in db.smembers('plugins:{}'.format(
+        server
+        ))]
+    if str(server_id) not in servers:
+        return redirect(url_for('index'))
+    server = {
+        'id': server_id,
+        'icon': db.get('server:{}:icon'.format(server_id)),
+        'name': db.get('server:{}:name'.format(server_id))
+    }
+
+    messages = db.lrange('Logs.{}:message_logs:{}:{}'.format(server_id, dt, channel), start=0, end=-1)
+    messages = list(map(json.loads, messages))
+    def render_text(msgs):
+        messages = []
+        for msg in msgs:
+            txt = "{date} <{name}#{discrim}> {content}".format(
+                    name=msg['author']['name'],
+                    discrim=msg['author']['discriminator'],
+                    content=msg['clean_content'],
+                    date=datetime.datetime.fromtimestamp(
+                        msg['timestamp']
+                    ).strftime('%Y-%m-%d %H:%M:%S')
+            )
+            if msg['attachments']:
+                txt+= " "
+                txt+= "|".join(list(map(lambda a:a['url'], msg['attachments'])))
+            messages.append(txt)
+        return "\n".join(messages)
+
+    if json_format is not None:
+        return jsonify({
+                'date': dt,
+                'messages': messages
+                })
+    elif txt is not None:
+        return Response(render_text(messages), mimetype='text/plain')
+    else:
+        messages = list(map(lambda m:
+            {**m,'date':datetime.datetime.fromtimestamp(m['timestamp']).strftime('%H:%M:%S')}, messages))
+        return render_template('message-logs.html', server=server, channel=channel, messages=messages, dt=dt)
 if __name__=='__main__':
     app.debug = True
     app.run()

@@ -11,6 +11,7 @@ from plugins.help import Help
 from plugins.levels import Levels
 from plugins.welcome import Welcome
 from plugins.animu import AnimuAndMango
+from plugins.logs import Logs
 
 log = logging.getLogger('discord')
 
@@ -37,6 +38,11 @@ class Mee6(discord.Client):
         for server in self.servers:
             log.debug('Adding server {}\'s id to db'.format(server.id))
             self.db.redis.sadd('servers', server.id)
+            self.db.redis.set('server:{}:name'.format(server.id), server.name)
+            if server.icon:
+                self.db.redis.set('server:{}:icon'.format(server.id), server.icon)
+
+
 
     @asyncio.coroutine
     def send_message(self, *args, **kwargs):
@@ -123,6 +129,7 @@ class Mee6(discord.Client):
             'channel_create',
             'channel_update',
             'member_join',
+            'member_remove',
             'member_update',
             'server_update',
             'server_role_create',

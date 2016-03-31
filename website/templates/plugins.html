@@ -38,7 +38,14 @@
               server=server,
               enabled_plugins=enabled_plugins
               )}}
-      {{ plugin.view(
+           {{ plugin.view(
+              'Logs',
+              view='plugin_logs',
+              description='Logs some basic events.',
+              server=server,
+              enabled_plugins=enabled_plugins
+              )}}
+     {{ plugin.view(
           'Lol',
           view='plugin_lol',
           pretty_name='League of Legends',

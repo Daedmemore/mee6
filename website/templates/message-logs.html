@@ -1,0 +1,57 @@
+{% extends 'dash_base.html' %}
+{% block dash_content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-md-3">
+		    <a href="{{url_for('logs_homepage', server_id=server.id)}}" class="btn btn-primary"><i class="fa fa-long-arrow-left"></i> Go back to the list!</a>
+                <h1>Good to know</h1>
+                <div class="panel panel-primary">
+                <div class="panel-body">
+			You can get the link of a particular message and <strong>share</strong> it with your <strong>friends</strong>.<br /><br />
+			Time format is UTC.<br /><br />
+			For the nerdiest of you plain text format and json format are available ;) .
+                </div>
+              </div>
+            </div>
+	    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/0.3.5/marked.min.js"></script>
+	    <script src="https://cdnjs.cloudflare.com/ajax/libs/jQuery-linkify/1.1.7/jquery.linkify.min.js"></script>
+            <div class="col-md-9">
+		    <h1>#{{channel}} <small>{{dt}}</small>  <a href="?json" class="btn btn-default btn-xs">json</a> <a href="?txt" class="btn btn-default btn-xs">txt</a> </h1>
+		{% for message in messages %}
+		<div class="row" style="margin-top:5px; margin-bottom:5px; padding-top:15px; padding-bottom:15px;" id="{{loop.revindex0}}">
+		      <div style="margin-right:0; padding-right:0;" class="col-md-1 col-sm-1 hidden-xs">
+		      	{% if message['author']['avatar'] %}
+			<img src="https://cdn.discordapp.com/avatars/{{message['author']['id']}}/{{message['author']['avatar']}}.jpg" style="width:100%" class="img-circle">
+			{% endif %}
+		      </div>
+		      <div class="col-md-11 col-sm-11 col-xs-12">
+			      <h4 style="margin:0; padding:0">{{message['author']['name']}}#{{message['author']['discriminator']}} <small>{{message['date']}} - <a href="#{{loop.revindex0}}" id="msg-{{loop.revindex0}}-link">link</a></small></h4>
+			      <p id="msg-{{loop.revindex0}}">
+			      </p>
+			       <p syle="margin:0; padding:0;">
+				{% for attachment in message['attachments'] %}
+				<a href="{{attachment['url']}}" target="_blank">{{attachment['url']}}</a><br />
+				{% endfor %}
+			      </p>
+			      <script>
+				document.getElementById('msg-{{loop.revindex0}}').innerHTML= marked('{{message['clean_content'] | replace("\n", "\\n")}}');
+				$('#msg-{{loop.revindex0}}').linkify();
+				$('#msg-{{loop.revindex0}}-link').click(function(){
+					window.prompt("Copy to clipboard: Ctrl+C, Enter", window.location.href+'#'+{{loop.revindex0}});
+					$('#'+{{loop.revindex0}}).css("background-color", "rgb(248, 238, 199)");
+				});
+			      </script>
+		      </div>
+		</div>
+		{% endfor %}	
+	    </div>
+            </div>
+
+        </div>
+    </div>
+    <script>
+	if(window.location.hash){
+		$(window.location.hash).css("background-color", "rgb(248, 238, 199)");
+	}
+    </script>
+{% endblock %}
