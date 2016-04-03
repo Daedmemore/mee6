@@ -44,18 +44,16 @@ class Mee6(discord.Client):
 
 
 
-    @asyncio.coroutine
-    def send_message(self, *args, **kwargs):
+    async def send_message(self, *args, **kwargs):
         dest = args[0]
         if hasattr(args[0], 'server'):
             dest = args[0].server
         if isinstance(args[0], discord.Member):
             dest = args[0]
         log.info('Mee6@{} >> {}'.format(dest.name,args[1].replace('\n', '~')))
-        yield from super().send_message(*args, **kwargs)
+        await super().send_message(*args, **kwargs)
 
-    @asyncio.coroutine
-    def on_server_join(self, server):
+    async def on_server_join(self, server):
         log.info('Joined {} server : {} !'.format(server.owner.name, server.name))
         log.debug('Adding server {}\'s id to db'.format(server.id))
         self.db.redis.sadd('servers', server.id)
@@ -63,20 +61,17 @@ class Mee6(discord.Client):
         if server.icon:
             self.db.redis.set('server:{}:icon'.format(server.id), server.icon)
 
-    @asyncio.coroutine
-    def on_server_remove(self, server):
+    async def on_server_remove(self, server):
         log.info('Leaving {} server : {} !'.format(server.owner.name, server.name))
         log.debug('Removing server {}\'s id from the db'.format(server.id))
         self.db.redis.srem('servers', server.id)
 
-    @asyncio.coroutine
-    def heartbeat(self, interval):
+    async def heartbeat(self, interval):
         while self.is_logged_in:
             self.db.redis.set('heartbeat', 1, ex=interval)
-            yield from asyncio.sleep(0.9 * interval)
+            await asyncio.sleep(0.9 * interval)
 
-    @asyncio.coroutine
-    def update_stats(self, interval):
+    async def update_stats(self, interval):
         while self.is_logged_in:
             # Total members and online members
             members = list(self.get_all_members())
@@ -91,18 +86,17 @@ class Mee6(discord.Client):
                     self.last_messages.pop(index)
             self.db.redis.set('mee6:stats:last_messages', len(self.last_messages))
 
-            yield from asyncio.sleep(interval)
+            await asyncio.sleep(interval)
 
-    @asyncio.coroutine
-    def _run_plugin_event(self, plugin, event, *args, **kwargs):
+    async def _run_plugin_event(self, plugin, event, *args, **kwargs):
         # A modified coro that is based on Client._run_event
         try:
-            yield from getattr(plugin, event)(*args, **kwargs)
+            await getattr(plugin, event)(*args, **kwargs)
         except asyncio.CancelledError:
             pass
         except Exception:
             try:
-                yield from self.on_error(event, *args, **kwargs)
+                await self.on_error(event, *args, **kwargs)
             except asyncio.CancelledError:
                 pass
 
@@ -145,16 +139,15 @@ class Mee6(discord.Client):
         method = 'on_' + event
         handler = 'handle_' + event
 
-        # Total number of messages stats update
+        if hasattr(self, handler):
+            getattr(self, handler)(*args, **kwargs)
+
         if event=='message':
             self.db.redis.incr('mee6:stats:messages')
             self.last_messages.append(time())
             if hasattr(self, method):
                 discord.utils.create_task(self._run_event(method, *args,\
              **kwargs), loop=self.loop)
-
-        if hasattr(self, handler):
-            getattr(self, handler)(*args, **kwargs)
 
         if event in plugin_events:
             server_context = find_server(*args, **kwargs)
