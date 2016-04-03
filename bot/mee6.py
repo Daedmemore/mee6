@@ -103,8 +103,9 @@ class Mee6(discord.Client):
     async def on_message(self, message):
         mee6_server_id = "159962941502783488"
         update_channel_id = "160784396679380992"
-        if not hasattr(message, 'server'):
+        if message.server is None:
             return
+
         if (message.server.id, message.channel.id) == (mee6_server_id, update_channel_id):
             owners = set(server.owner for server in self.servers)
             for owner in owners:
