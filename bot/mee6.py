@@ -42,17 +42,6 @@ class Mee6(discord.Client):
             if server.icon:
                 self.db.redis.set('server:{}:icon'.format(server.id), server.icon)
 
-
-
-    async def send_message(self, *args, **kwargs):
-        dest = args[0]
-        if hasattr(args[0], 'server'):
-            dest = args[0].server
-        if isinstance(args[0], discord.Member):
-            dest = args[0]
-        log.info('Mee6@{} >> {}'.format(dest.name,args[1].replace('\n', '~')))
-        await super().send_message(*args, **kwargs)
-
     async def on_server_join(self, server):
         log.info('Joined {} server : {} !'.format(server.owner.name, server.name))
         log.debug('Adding server {}\'s id to db'.format(server.id))
@@ -101,6 +90,14 @@ class Mee6(discord.Client):
                 pass
 
     async def on_message(self, message):
+        if message.author.id == self.user.id:
+            destination = message.channel
+            if destination.is_private:
+                dest_name = "[PM] {}".format(destination.user.name)
+            else:
+                dest_name = "{}@{}".format(destination.server.name, destination.name)
+            log.info("OUT >> {} >> {}".format(dest_name, message.clean_content.replace('\n', '~')))
+
         mee6_server_id = "159962941502783488"
         update_channel_id = "160784396679380992"
         if message.server is None:
