@@ -5,7 +5,7 @@
     <div class="row">
         <div class="col-md-6 animated bounceInLeft v-align">
             {% import 'macros/plugin.html' as plugin %}
-            <h3>Features</h3>
+            <h3>Star Features</h3>
             <div class="list-group" style="color:#006687; opacity:0.6;">
                 {{ plugin.view(
                     'Levels',
@@ -30,9 +30,9 @@
                       server=server
                       )}}
                       {{ plugin.view(
-                          'Welcome',
-                          view='plugin_welcome',
-                          description='Display a welcome message for members that have joined the server!',
+                          'Logs',
+                          view='plugin_logs',
+                          description='Keep logs of all the messages in your server',
                           server=server,
                           no_links=True
                           )}}
@@ -40,11 +40,19 @@
         </div><!--
     --><div class="col-md-6 text-center animated bounceInRight v-align">
             <h2>Who made this?</h2>
-            <img src="{{url_for('static', filename='img/cookie.jpg')}}" class="img-circle"><br />
+		<img src="{{url_for('static', filename='img/cookie.jpg')}}" class="img-circle"><br />
             <p>Hi, I'm <strong>Cookie</strong>.<br /> I made the first version of Mee6 bot in 3 days. </p>
             <h2>Contributors</h2>
-            <img src="https://cdn.discordapp.com/avatars/99555390336794624/2ae1775eb7c76b8d09872594554a37e3.jpg" class="img-circle"><br />
+            <div class="row">
+	    <div class="col-md-6">
+		<img src="https://cdn.discordapp.com/avatars/99555390336794624/2ae1775eb7c76b8d09872594554a37e3.jpg" class="img-circle"><br />
             <p>This is <strong>vʌı</strong>. He corrects all the silly english related mistakes that I make on the website and on the bot. </p>
+	    </div>
+	    <div class="col-md-6">
+		<img src="https://cdn.discordapp.com/avatars/149041922051145728/692f4699701e0f5d3014c96955816a7a.jpg" class="img-circle"><br />
+		<p>This is <strong>sans</strong>. He loves archlinux and he made the Git Repo plugin.</p>
+	    </div>
+	    </div>
         </div>
     </div>
   </div>
