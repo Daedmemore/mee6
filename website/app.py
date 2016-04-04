@@ -491,6 +491,27 @@ def plugin_logs(server_id):
             logs = logs
             )
 
+@app.route('/dashboard/<int:server_id>/git')
+@require_auth
+@require_bot_admin
+@server_check
+def plugin_git(server_id):
+    disable = request.args.get('disable')
+    if disable:
+        db.srem('plugins:{}'.format(server_id), 'Git')
+        return redirect(url_for('dashboard',server_id=server_id))
+
+    db.sadd('plugins:{}'.format(server_id), 'Git')
+
+    servers = session['guilds']
+    server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
+    enabled_plugins = db.smembers('plugins:{}'.format(server_id))
+
+    return render_template('plugin-git.html',
+                           server=server,
+                           enabled_plugins=enabled_plugins,
+                           )
+
 @app.route('/logs/<int:server_id>')
 def logs_homepage(server_id):
     json = request.args.get('json', None)
