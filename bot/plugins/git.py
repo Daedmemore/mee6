@@ -17,9 +17,9 @@ class Git(Plugin):
     async def on_message(self, message):
 
         flavortext = [
-            "Glad you asked!"
-            "Hey kid, wanna see some source code?"
-            "Thanks for stopping by!"
+            "Glad you asked!",
+            "Hey kid, wanna see some source code?",
+            "Thanks for stopping by!",
             "Here's where the magic happens."
             ]
 
