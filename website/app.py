@@ -120,7 +120,7 @@ def get_or_update_user():
 
 
 def get_user_servers(user, guilds):
-    return list(filter(lambda g: g['owner'] is True, guilds))
+    return list(filter(lambda g: (g['owner'] is True) or bool(( int(g['permissions'])>> 5) & 1), guilds))
 
 @app.route('/servers')
 @require_auth
@@ -131,7 +131,6 @@ def select_server():
 
     get_or_update_user()
     user_servers = get_user_servers(session['user'], session['guilds'])
-
     return render_template('select-server.html', user_servers=user_servers)
 
 def server_check(f):
@@ -585,9 +584,20 @@ def message_logs(server_id, dt, channel):
     elif txt is not None:
         return Response(render_text(messages), mimetype='text/plain')
     else:
-        messages = list(map(lambda m:
-            {**m,'date':datetime.datetime.fromtimestamp(m['timestamp']).strftime('%H:%M:%S')}, messages))
+        messages = list(map(lambda m: {**m,'date':datetime.datetime.fromtimestamp(m['timestamp']).strftime('%H:%M:%S')}, messages))
         return render_template('message-logs.html', server=server, channel=channel, messages=messages, dt=dt)
+
+@app.route('/dashboard/<int:server_id>/manage_admins')
+def manage_admins(server_id):
+    servers = session['guilds']
+    server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
+    enabled_plugins = db.smembers('plugins:{}'.format(server_id))
+    return render_template('manage-admins.html',
+                           server=server,
+                           enabled_plugins=enabled_plugins,
+                           )
+
+
 if __name__=='__main__':
     app.debug = True
     app.run()
