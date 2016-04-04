@@ -12,6 +12,7 @@ from plugins.levels import Levels
 from plugins.welcome import Welcome
 from plugins.animu import AnimuAndMango
 from plugins.logs import Logs
+from plugins.git import Git
 
 log = logging.getLogger('discord')
 
