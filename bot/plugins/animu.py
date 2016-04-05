@@ -52,7 +52,7 @@ class AnimuAndMango(Plugin):
             message.author.name,
             message.author.discriminator,
             message.server.name,
-            message.content
+            message.clean_content
         ))
 
         nature, name = check.groups()

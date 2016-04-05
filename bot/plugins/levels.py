@@ -1,6 +1,5 @@
 from plugin import Plugin
 import logging
-import asyncio
 from random import randint
 log = logging.getLogger('discord')
 
@@ -51,8 +50,7 @@ class Levels(Plugin):
 
         return False
 
-    @asyncio.coroutine
-    def on_message(self, message):
+    async def on_message(self, message):
         if message.author.id == self.mee6.user.id:
             return
 
@@ -61,14 +59,14 @@ class Levels(Plugin):
                 message.author.name,
                 message.author.discriminator,
                 message.server.name,
-                message.content
+                message.clean_content
             ))
             url = 'http://mee6.xyz/levels/{}'.format(message.server.id)
             response = 'Go check **{}**\'s leaderboard here : {} ! :wink:'.format(
                 message.server.name,
                 url
             )
-            yield from self.mee6.send_message(message.channel, response)
+            await self.mee6.send_message(message.channel, response)
             return
 
         if self.is_ban(message.author):
@@ -79,7 +77,7 @@ class Levels(Plugin):
                 message.author.name,
                 message.author.discriminator,
                 message.server.name,
-                message.content
+                message.clean_content
             ))
             storage = self.get_storage(message.server)
 
@@ -99,7 +97,7 @@ class Levels(Plugin):
                 resp = '{}, It seems like you are not ranked. Start talking in the chat to get ranked :wink:.'
                 if player != message.author:
                     resp = '{}, It seems like '+player.mention+' is not ranked :cry:.'
-                yield from self.mee6.send_message(message.channel,
+                await self.mee6.send_message(message.channel,
                     resp.format(
                         message.author.mention
                     )
@@ -142,7 +140,7 @@ class Levels(Plugin):
                     len(players)
                 )
 
-            yield from self.mee6.send_message(message.channel, response)
+            await self.mee6.send_message(message.channel, response)
             return
 
         storage = self.get_storage(message.server)
@@ -188,7 +186,7 @@ class Levels(Plugin):
             announcement_enabled = storage.get('announcement_enabled')
             if announcement_enabled:
                 announcement = storage.get('announcement')
-                yield from self.mee6.send_message(message.channel, announcement.format(
+                await self.mee6.send_message(message.channel, announcement.format(
                     player = player.mention,
                     level = new_level
                 ))
