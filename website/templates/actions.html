@@ -4,10 +4,4 @@
     <h4 class="list-group-item-heading">Change server</h4>
     <p class="list-group-item-text">Go back to your server list.</p>
   </a>
-  {% if server.id in session['guilds']|map(attribute='id') %}
-  <a href="{{url_for('manage_admins', server_id=server.id)}}" class="list-group-item">
-    <h4 class="list-group-item-heading">Manage bot admins</h4>
-    <p class="list-group-item-text">Add another bot Admin that can access this server dashboard.</p>
-  </a>
-  {% endif %}
 </div>
