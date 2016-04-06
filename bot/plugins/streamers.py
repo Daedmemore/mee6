@@ -71,12 +71,15 @@ class Streamers(Plugin):
                         name=a_c
                 ) or server
 
-                await self.mee6.send_message(announcement_channel, announcement_msg)
-                # Mark as announcement
-                storage.sadd('streamer:{}'.format(
-                    live_streamer['channel']['name']),
-                    live_streamer['_id']
-                )
+                try:
+                    await self.mee6.send_message(announcement_channel, announcement_msg)
+                    # Mark as announcement
+                    storage.sadd('streamer:{}'.format(
+                        live_streamer['channel']['name']),
+                        live_streamer['_id']
+                    )
+                except:
+                    pass
 
 
     async def on_ready(self):
