@@ -142,10 +142,13 @@ class Mee6(discord.Client):
         if (message.server.id, message.channel.id) == (mee6_server_id, update_channel_id):
             owners = set(server.owner for server in self.servers)
             for owner in owners:
-                await self.send_message(
-                    owner,
-                    message.content
-                )
+                try:
+                    await self.send_message(
+                        owner,
+                        message.content
+                    )
+                except:
+                    pass
                 await asyncio.sleep(2)
 
     def dispatch(self, event, *args, **kwargs):
