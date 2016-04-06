@@ -597,6 +597,60 @@ def manage_admins(server_id):
                            enabled_plugins=enabled_plugins,
                            )
 
+@app.route('/dashboard/<int:server_id>/streamers')
+@require_auth
+@require_bot_admin
+@server_check
+def plugin_streamers(server_id):
+    disable = request.args.get('disable')
+    if disable:
+        db.srem('plugins:{}'.format(server_id), 'Streamers')
+        return redirect(url_for('dashboard',server_id=server_id))
+
+    db.sadd('plugins:{}'.format(server_id), 'Streamers')
+
+    servers = session['guilds']
+    server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
+    enabled_plugins = db.smembers('plugins:{}'.format(server_id))
+    streamers = db.smembers('Streamers.{}:streamers'.format(server_id))
+    announcement_channel = db.get('Streamers.{}:announcement_channel'.format(server_id))
+    announcement_msg = db.get('Streamers.{}:announcement_msg'.format(server_id))
+    if announcement_msg is None:
+        announcement_msg = "Hey @everyone! {streamer} is now live on http://twitch.tv/{streamer} ! Go check it out :wink:!"
+        db.set('Streamers.{}:announcement_msg'.format(server_id), announcement_msg)
+    return render_template('plugin-streamers.html',
+                           server=server,
+                           streamers=streamers,
+                           announcement_channel=announcement_channel,
+                           announcement_msg=announcement_msg,
+                           enabled_plugins=enabled_plugins,
+                           )
+
+@app.route('/dashboard/<int:server_id>/update_streamers', methods=['POST'])
+@require_auth
+@require_bot_admin
+@server_check
+def update_streamers(server_id):
+    servers = session['guilds']
+    server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
+    announcement_channel = request.form.get('announcement_channel')
+    announcement_msg = request.form.get('announcement_msg')
+    if announcement_msg == "":
+        flash('The announcement message should not be empty!', 'warning')
+        return redirect(url_for('plugin_streamers', server_id=server_id))
+
+    streamers = request.form.getlist('streamers[]')
+    db.set('Streamers.{}:announcement_channel'.format(server_id), announcement_channel)
+    db.set('Streamers.{}:announcement_msg'.format(server_id), announcement_msg)
+    db.delete('Streamers.{}:streamers'.format(server_id))
+    for streamer in streamers:
+        if streamer != "":
+            db.sadd('Streamers.{}:streamers'.format(server_id), streamer.lower())
+
+    flash('Configuration updated with success!', 'success')
+    return redirect(url_for('plugin_streamers', server_id=server_id))
+
+
 
 if __name__=='__main__':
     app.debug = True
