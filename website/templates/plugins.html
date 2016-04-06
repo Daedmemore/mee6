@@ -39,6 +39,14 @@
               server=server,
               enabled_plugins=enabled_plugins
               )}}
+       {{ plugin.view(
+          'Streamers',
+          pretty_name='Twitch',
+          view='plugin_streamers',
+          description='Get notified when your best <strong>Twitch</strong> streamers go live!',
+          server=server,
+          enabled_plugins=enabled_plugins
+          )}}
           {{ plugin.view(
               'Welcome',
               view='plugin_welcome',
