@@ -32,7 +32,7 @@ class Reddit(Plugin):
         if selftext:
             selftext = post['selftext'][:400]
 
-        response = """*New post from /r/{subreddit}*
+        response = """`New post from /r/{subreddit}`
 
         **{title}** *by {author}*
         {content}
