@@ -53,7 +53,7 @@ class Reddit(Plugin):
         sub = posts[0]['subreddit']
         last_posted = storage.get('{}:last'.format(sub))
         if last_posted is None:
-            return posts[0]
+            return [posts[0]]
 
         i = 0
         while i<len(posts) and last_posted!=posts[i]['id']:
