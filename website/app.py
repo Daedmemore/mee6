@@ -529,7 +529,7 @@ def logs_homepage(server_id):
     payload = []
     dates = list(db.smembers('Logs.{}:message_logs'.format(server_id)))
     dates = map(lambda d:d.split('-'), dates)
-    dates = sorted(dates)
+    dates = sorted(dates, reverse=True)
     dates = list(map(lambda d:"-".join(d), dates))
     for date in dates:
         info = {
