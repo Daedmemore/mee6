@@ -76,7 +76,7 @@ class Reddit(Plugin):
                 to_announce = reversed(self.get_to_announce(last_posts, server))
                 for post in to_announce:
                     await self.display_post(post, server)
-                    storage.set('{}:last'.format(post['subreddit'], post['id']))
+                    storage.set('{}:last'.format(post['subreddit']), post['id'])
 
     async def on_ready(self):
         while True:
