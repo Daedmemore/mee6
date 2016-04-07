@@ -8,6 +8,7 @@ import json
 import binascii
 from math import floor
 import datetime
+import functools
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY", "qdaopdsjDJ9u&çed&ndlnad&pjéà&jdndqld")
@@ -526,7 +527,19 @@ def logs_homepage(server_id):
         'name': db.get('server:{}:name'.format(server_id))
     }
     payload = []
-    dates = list(db.smembers('Logs.{}:message_logs'.format(server_id)))
+
+    @functools.cmp_to_key
+    def cmp(d1, d2):
+        d1 = d1.split('-')
+        d2 = d2.split('-')
+        if d1[0]!=d2[0]:
+            return int(d1[0])>int(d2[0])
+        if d1[1]!=d2[1]:
+            return int(d1[1])>int(d2[1])
+        else:
+            return int(d1[2])>int(d2[2])
+
+    dates = sorted(list(db.smembers('Logs.{}:message_logs'.format(server_id))), key=cmp, reverse=True)
     for date in dates:
         info = {
                 'dt': date,
