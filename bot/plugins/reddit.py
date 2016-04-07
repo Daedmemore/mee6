@@ -80,10 +80,5 @@ class Reddit(Plugin):
 
     async def on_ready(self):
         while True:
-            try:
-                await self.cron_job()
-            except Exception:
-                logs.info('An error occured in the Reddit cron job! '
-                         'Retrying in 20 sec...'
-                         )
+            await self.cron_job()
             await asyncio.sleep(20)
