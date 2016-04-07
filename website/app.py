@@ -650,6 +650,48 @@ def update_streamers(server_id):
     flash('Configuration updated with success!', 'success')
     return redirect(url_for('plugin_streamers', server_id=server_id))
 
+@app.route('/dashboard/<int:server_id>/reddit')
+@require_auth
+@require_bot_admin
+@server_check
+def plugin_reddit(server_id):
+    disable = request.args.get('disable')
+    if disable:
+        db.srem('plugins:{}'.format(server_id), 'Reddit')
+        return redirect(url_for('dashboard',server_id=server_id))
+
+    db.sadd('plugins:{}'.format(server_id), 'Reddit')
+
+    servers = session['guilds']
+    server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
+    enabled_plugins = db.smembers('plugins:{}'.format(server_id))
+    subs = db.smembers('Reddit.{}:subs'.format(server_id))
+    display_channel = db.get('Reddit.{}:display_channel'.format(server_id))
+    return render_template('plugin-reddit.html',
+                           server=server,
+                           subs=subs,
+                           display_channel=display_channel,
+                           enabled_plugins=enabled_plugins,
+                           )
+
+@app.route('/dashboard/<int:server_id>/update_reddit', methods=['POST'])
+@require_auth
+@require_bot_admin
+@server_check
+def update_reddit(server_id):
+    servers = session['guilds']
+    server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
+    display_channel = request.form.get('display_channel')
+
+    subs = request.form.getlist('subs[]')
+    db.set('Reddit.{}:display_channel'.format(server_id), display_channel)
+    db.delete('Reddit.{}:subs'.format(server_id))
+    for sub in subs:
+        if sub != "":
+            db.sadd('Reddit.{}:subs'.format(server_id), sub.lower())
+
+    flash('Configuration updated with success!', 'success')
+    return redirect(url_for('plugin_reddit', server_id=server_id))
 
 
 if __name__=='__main__':

@@ -14,6 +14,7 @@ from plugins.animu import AnimuAndMango
 from plugins.logs import Logs
 from plugins.git import Git
 from plugins.streamers import Streamers
+from plugins.reddit import Reddit
 
 log = logging.getLogger('discord')
 
