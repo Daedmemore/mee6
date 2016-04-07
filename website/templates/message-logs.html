@@ -16,7 +16,11 @@
 	    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/0.3.5/marked.min.js"></script>
 	    <script src="https://cdnjs.cloudflare.com/ajax/libs/jQuery-linkify/1.1.7/jquery.linkify.min.js"></script>
             <div class="col-md-9">
-		    <h1>#{{channel}} <small>{{dt}}</small>  <a href="?json" class="btn btn-default btn-xs">json</a> <a href="?txt" class="btn btn-default btn-xs">txt</a> </h1>
+		    <h1>#{{channel}} <small>{{dt}}</small>  <a href="?json" class="btn btn-default
+                    btn-xs">json</a> <a href="?txt" class="btn btn-default btn-xs">txt</a> <a
+                                                    href="?asc=1" class="btn btn-default
+                                                    btn-xs">asc</a> <a href="?desc=1" class="btn
+                btn-default btn-xs">desc</a></h1>
 		{% for message in messages %}
 		<div class="row" style="margin-top:5px; margin-bottom:5px; padding-top:15px; padding-bottom:15px;" id="{{loop.revindex0}}">
 		      <div style="margin-right:0; padding-right:0;" class="col-md-1 col-sm-1 hidden-xs">

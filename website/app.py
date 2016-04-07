@@ -547,6 +547,8 @@ def logs_homepage(server_id):
 
 @app.route('/message_logs/<int:server_id>/<string:dt>/<string:channel>')
 def message_logs(server_id, dt, channel):
+    asc = request.args.get('asc')
+
     json_format = request.args.get('json', None)
     txt = request.args.get('txt', None)
     servers = db.smembers('servers')
@@ -562,6 +564,8 @@ def message_logs(server_id, dt, channel):
     }
 
     messages = db.lrange('Logs.{}:message_logs:{}:{}'.format(server_id, dt, channel), start=0, end=-1)
+    if asc=="1":
+        messages = reversed(messages)
     messages = list(map(json.loads, messages))
     def render_text(msgs):
         messages = []
