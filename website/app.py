@@ -536,7 +536,7 @@ def logs_homepage(server_id):
             return int(d1[0])>int(d2[0])
         if d1[1]!=d2[1]:
             return int(d1[1])>int(d2[1])
-        else:
+        if d1[2]!=d2[2]:
             return int(d1[2])>int(d2[2])
 
     dates = sorted(list(db.smembers('Logs.{}:message_logs'.format(server_id))), key=cmp, reverse=True)
