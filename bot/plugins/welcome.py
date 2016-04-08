@@ -12,7 +12,8 @@ class Welcome(Plugin):
     async def on_member_join(self, member):
         server = member.server
         storage = await self.get_storage(server)
-        welcome_message = await storage.get('welcome_message').format(
+        welcome_message = await storage.get('welcome_message')
+        welcome_message = welcome_message.format(
             server = server.name,
             user = member.mention
         )
