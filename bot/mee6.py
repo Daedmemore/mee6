@@ -133,6 +133,9 @@ class Mee6(discord.Client):
             counter+=1
 
     async def on_message(self, message):
+        if message.server is None:
+            return
+
         server = message.server
         enabled_plugins = await self.get_plugins(server)
         for plugin in enabled_plugins:
