@@ -16,14 +16,12 @@ class Storage():
             encoding="utf8"
         )
 
-    async def set(self, key, value, expire=0, pexpire=0, exist=None):
+    async def set(self, key, value, expire=0):
         key = self.namespace + key
         return await self.redis.set(
             key,
             value,
-            expire=expire,
-            pexpire=pexpire,
-            exist=exist
+            expire=expire
         )
 
     async def get(self, key):
