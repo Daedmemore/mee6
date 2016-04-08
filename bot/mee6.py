@@ -155,11 +155,11 @@ class Mee6(discord.Client):
         for plugin in enabled_plugins:
             self.loop.create_task(plugin.on_channel_create(channel))
 
-    async def on_channel_update(self, channel):
-        server = channel.server
+    async def on_channel_update(self, before, after):
+        server = after.server
         enabled_plugins = await self.get_plugins(server)
         for plugin in enabled_plugins:
-            self.loop.create_task(plugin.on_channel_update(channel))
+            self.loop.create_task(plugin.on_channel_update(before, after))
 
     async def on_channel_delete(self, channel):
         server = channel.server

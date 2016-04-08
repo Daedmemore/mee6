@@ -34,7 +34,7 @@ class Plugin(object, metaclass=PluginMount):
     async def on_channel_create(self, channel):
         pass
 
-    async def on_channel_update(self, channel):
+    async def on_channel_update(self, before, after):
         pass
 
     async def on_channel_delete(self, channel):
