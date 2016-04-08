@@ -1,5 +1,4 @@
 import logging
-import asyncio
 from plugin import Plugin
 
 log = logging.getLogger('discord')
@@ -21,10 +20,12 @@ class PluginManager:
         for plugin in Plugin.plugins:
             self.load(plugin)
 
-    def get_all(self, server):
-        plugin_names = self.db.redis.smembers('plugins:{}'.format(server.id))
+    async def get_all(self, server):
+        plugin_names = await self.db.redis.smembers('plugins:{}'.format(server.id))
         plugins = []
         for plugin in self.mee6.plugins:
+            if plugin.is_global:
+                plugins.append(plugin)
             if plugin.__class__.__name__ in plugin_names:
                 plugins.append(plugin)
         return plugins
