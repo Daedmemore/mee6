@@ -13,9 +13,12 @@ class Welcome(Plugin):
         server = member.server
         storage = await self.get_storage(server)
         welcome_message = await storage.get('welcome_message')
-        welcome_message = welcome_message.format(
-            server = server.name,
-            user = member.mention
+        welcome_message = welcome_message.replace(
+            "{server}",
+            server.name
+        ).replace(
+            "{user}",
+            member.mention
         )
         channel_name = await storage.get('channel_name')
 

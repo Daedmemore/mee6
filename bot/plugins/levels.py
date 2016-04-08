@@ -189,7 +189,10 @@ class Levels(Plugin):
             announcement_enabled = await storage.get('announcement_enabled')
             if announcement_enabled:
                 announcement = await storage.get('announcement')
-                await self.mee6.send_message(message.channel, announcement.format(
-                    player = player.mention,
-                    level = new_level
+                await self.mee6.send_message(message.channel, announcement.replace(
+                    "{player}",
+                    player.mention,
+                ).replace(
+                    "{level}",
+                    str(new_level)
                 ))
