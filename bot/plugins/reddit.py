@@ -23,8 +23,8 @@ class Reddit(Plugin):
         return list(map(lambda p:p['data'], posts))
 
     async def display_post(self, post, server):
-        storage = self.get_storage(server)
-        destination_name = storage.get('display_channel')
+        storage = await self.get_storage(server)
+        destination_name = await storage.get('display_channel')
         display_channel = discord.utils.get(server.channels, name=destination_name)
         destination = display_channel or server
 
@@ -46,12 +46,12 @@ class Reddit(Plugin):
         )
 
         await self.mee6.send_message(destination, response)
-        storage.set('{}:last'.format(post['subreddit'].lower()), post['id'])
+        await storage.set('{}:last'.format(post['subreddit'].lower()), post['id'])
 
-    def get_to_announce(self, posts, server):
-        storage = self.get_storage(server)
+    async def get_to_announce(self, posts, server):
+        storage = await self.get_storage(server)
         sub = posts[0]['subreddit']
-        last_posted = storage.get('{}:last'.format(sub))
+        last_posted = await storage.get('{}:last'.format(sub))
         if last_posted is None:
             return [posts[0]]
 
@@ -63,25 +63,22 @@ class Reddit(Plugin):
 
     async def cron_job(self):
         for server in self.mee6.servers:
-            storage = self.get_storage(server)
+            storage = await self.get_storage(server)
             if storage is None:
                 continue
 
-            subs = storage.smembers('subs'.format(server.id))
+            subs = await storage.smembers('subs'.format(server.id))
             for sub in subs:
                 last_posts = await self.get_posts(sub)
                 if not last_posts:
                     continue
 
-                to_announce = reversed(self.get_to_announce(last_posts, server))
+                to_announce = reversed(await self.get_to_announce(last_posts, server))
                 for post in to_announce:
                     await self.display_post(post, server)
-                    storage.set('{}:last'.format(post['subreddit']), post['id'])
+                    await storage.set('{}:last'.format(post['subreddit']), post['id'])
 
     async def on_ready(self):
         while True:
-            try:
-                await self.cron_job()
-            except Exception:
-                logs.info('Failed to run the Reddit cron. Retrying in 20sec')
+            await self.cron_job()
             await asyncio.sleep(20)

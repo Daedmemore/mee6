@@ -7,8 +7,8 @@ class Commands(Plugin):
 
     fancy_name = 'Custom Commands'
 
-    def get_commands(self, server):
-        storage = self.get_storage(server)
+    async def get_commands(self, server):
+        storage = await self.get_storage(server)
         commands = sorted(storage.smembers('commands'))
         cmds = []
         for command in commands:
@@ -21,8 +21,8 @@ class Commands(Plugin):
     async def on_message(self, message):
         if message.author.id == self.mee6.user.id:
             return
-        storage = self.get_storage(message.server)
-        commands = storage.smembers('commands')
+        storage = await self.get_storage(message.server)
+        commands = await storage.smembers('commands')
         if message.content in commands:
             log.info('{}#{}@{} >> {}'.format(
                 message.author.name,
@@ -30,7 +30,7 @@ class Commands(Plugin):
                 message.server.name,
                 message.clean_content
             ))
-            response = storage.get('command:{}'.format(message.content))
+            response = await storage.get('command:{}'.format(message.content))
             await  self.mee6.send_message(
                 message.channel,
                 response

@@ -20,15 +20,16 @@ class Streamers(Plugin):
                     -> Mark as announced
     """
 
-    def get_streamers(self):
+    async def get_streamers(self):
         """Gets all the streamers in the db"""
         streamers = []
         # Getting all the streamers in the db
         for server in self.mee6.servers:
-            if 'Streamers' not in self.db.redis.smembers('plugins:{}'.format(server.id)):
+            enabled_plugins = await self.mee6.get_plugins(server)
+            if self not in enabled_plugins:
                 continue
-            storage = self.get_storage(server)
-            streamers += list(storage.smembers('streamers'))
+            storage = await self.get_storage(server)
+            streamers += list(await storage.smembers('streamers'))
 
         return set(streamers)
 
@@ -47,25 +48,26 @@ class Streamers(Plugin):
     async def announce_live(self, server, live_streamers):
         """Announce the lives if not already announced"""
         # Check if plugin enabled
-        if 'Streamers' not in self.db.redis.smembers('plugins:{}'.format(server.id)):
+        enabled_plugins = await self.mee6.get_plugins(server)
+        if self not in enabled_plugins:
            return
-        storage = self.get_storage(server)
-        streamers = storage.smembers('streamers')
+        storage = await self.get_storage(server)
+        streamers = await storage.smembers('streamers')
         for streamer in streamers:
             # Grab the streamers that are live
             if streamer in live_streamers:
                 live_streamer = live_streamers[streamer]
-                streamer_ids = storage.smembers('streamer:{}'.format(
+                streamer_ids = await storage.smembers('streamer:{}'.format(
                     live_streamer['channel']['name']
                 ))
                 # Check if already announced
                 if str(live_streamer['_id']) in streamer_ids:
                     return
                 # Announce
-                announcement_msg = storage.get('announcement_msg').format(
+                announcement_msg = await storage.get('announcement_msg').format(
                     streamer=live_streamer['channel']['name']
                 )
-                a_c = storage.get('announcement_channel')
+                a_c = await storage.get('announcement_channel')
                 announcement_channel = discord.utils.get(
                         server.channels,
                         name=a_c
@@ -74,7 +76,7 @@ class Streamers(Plugin):
                 try:
                     await self.mee6.send_message(announcement_channel, announcement_msg)
                     # Mark as announcement
-                    storage.sadd('streamer:{}'.format(
+                    await storage.sadd('streamer:{}'.format(
                         live_streamer['channel']['name']),
                         live_streamer['_id']
                     )
@@ -85,7 +87,7 @@ class Streamers(Plugin):
     async def on_ready(self):
         while True:
             # Getting all the streamers
-            streamers = self.get_streamers()
+            streamers = await self.get_streamers()
             # Getting all lve streamers
             live_streamers = await self.get_live_streamers(streamers)
             # Handle announcement

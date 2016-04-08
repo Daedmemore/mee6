@@ -40,19 +40,19 @@ class Logs(Plugin):
             "timestamp": timestamp,
             "attachments": message.attachments
         }
-        storage = self.get_storage(message.server)
+        storage = await self.get_storage(message.server)
         date = now.strftime("%Y-%m-%d %H:%M:%S UTC")
         date = '{}-{}-{}'.format(now.year, now.month, now.day)
         channel = message.channel.name
         # Adding the date to the list of logs
-        storage.sadd('message_logs', date)
+        await storage.sadd('message_logs', date)
         # Adding the channel to the list of today logs
-        storage.sadd('message_logs:{}'.format(date), channel)
+        await storage.sadd('message_logs:{}'.format(date), channel)
         # Adding the message to the logs
-        storage.lpush('message_logs:{}:{}'.format(date, channel), json.dumps(msg))
+        await storage.lpush('message_logs:{}:{}'.format(date, channel), json.dumps(msg))
 
     async def on_member_join(self, member):
-        storage = self.get_storage(member.server)
+        storage = await self.get_storage(member.server)
         log = "{} {}#{} joined the server.".format(
             time.time(),
             member.name,
@@ -63,10 +63,10 @@ class Logs(Plugin):
             member.discriminator,
             member.server.name
         ))
-        storage.lpush('logs', log)
+        await storage.lpush('logs', log)
 
     async def on_member_remove(self, member):
-        storage = self.get_storage(member.server)
+        storage = await self.get_storage(member.server)
         log = "{} {}#{} left the server.".format(
             time.time(),
             member.name,
@@ -77,10 +77,10 @@ class Logs(Plugin):
             member.discriminator,
             member.server.name
         ))
-        storage.lpush('logs', log)
+        await storage.lpush('logs', log)
 
     async def on_member_ban(self, member):
-        storage = self.get_storage(member.server)
+        storage = await self.get_storage(member.server)
         log = "{} {}#{} was banned from the server.".format(
                 time.time(),
                 member.name,
@@ -91,10 +91,10 @@ class Logs(Plugin):
             member.discriminator,
             member.server.name
         ))
-        storage.lpush('logs', log)
+        await storage.lpush('logs', log)
 
     async def on_member_unban(self, server, user):
-        storage = self.get_storage(server)
+        storage = await self.get_storage(server)
         log = "{} {}#{} was unbanned from the server.".format(
                 time.time(),
                 user.name,
@@ -105,5 +105,5 @@ class Logs(Plugin):
             user.discriminator,
             server.name
         ))
-        storage.lpush('logs', log)
+        await storage.lpush('logs', log)
 

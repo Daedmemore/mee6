@@ -37,10 +37,10 @@ class Levels(Plugin):
             level += 1
         return level
 
-    def is_ban(self, member):
-        storage = self.get_storage(member.server)
-        banned_members = storage.smembers('banned_members')
-        banned_roles = storage.smembers('banned_roles')
+    async def is_ban(self, member):
+        storage = await self.get_storage(member.server)
+        banned_members = await storage.smembers('banned_members')
+        banned_roles = await storage.smembers('banned_roles')
         if member.name in banned_members:
             return True
 
@@ -69,7 +69,8 @@ class Levels(Plugin):
             await self.mee6.send_message(message.channel, response)
             return
 
-        if self.is_ban(message.author):
+        is_ban = await self.is_ban(message.author)
+        if is_ban:
             return
 
         if message.content.startswith('!rank'):
@@ -79,20 +80,20 @@ class Levels(Plugin):
                 message.server.name,
                 message.clean_content
             ))
-            storage = self.get_storage(message.server)
+            storage = await self.get_storage(message.server)
 
-            cooldown_duration = int(storage.get('cooldown') or 0)
-            cooldown = storage.get('player:{}:cooldown'.format(message.author.id))
+            cooldown_duration = int(await storage.get('cooldown') or 0)
+            cooldown = await storage.get('player:{}:cooldown'.format(message.author.id))
             if cooldown is not None:
                 return
-            storage.set('player:{}:cooldown'.format(message.author.id), '1')
-            storage.expire('player:{}:cooldown'.format(message.author.id), cooldown_duration)
+            await storage.set('player:{}:cooldown'.format(message.author.id), '1')
+            await storage.expire('player:{}:cooldown'.format(message.author.id), cooldown_duration)
 
             if message.mentions != []:
                 player = message.mentions[0]
             else:
                 player = message.author
-            players = storage.smembers('players')
+            players = await storage.smembers('players')
             if player.id not in players:
                 resp = '{}, It seems like you are not ranked. Start talking in the chat to get ranked :wink:.'
                 if player != message.author:
@@ -104,15 +105,15 @@ class Levels(Plugin):
                 )
                 return
 
-            player_total_xp = storage.get('player:{}:xp'.format(player.id))
-            player_lvl = storage.get('player:{}:lvl'.format(player.id))
+            player_total_xp = await storage.get('player:{}:xp'.format(player.id))
+            player_lvl = await storage.get('player:{}:lvl'.format(player.id))
             x = 0
             for l in range(0,int(player_lvl)):
                 x += int(100*(1.2**l))
             remaining_xp = int(int(player_total_xp) - x)
             level_xp = int(Levels._get_level_xp(int(player_lvl)))
-            players = self.mee6.db.redis.sort('Levels.{}:players'.format(message.server.id),
-                        by='Levels.{}:player:*:xp'.format(message.server.id),
+            players = storage.sort('players'.format(message.server.id),
+                        by='player:*:xp'.format(message.server.id),
                         start=0,
                         num=-1,
                         desc=True)
@@ -143,49 +144,49 @@ class Levels(Plugin):
             await self.mee6.send_message(message.channel, response)
             return
 
-        storage = self.get_storage(message.server)
+        storage = await self.get_storage(message.server)
 
         # Updating player's profile
         player = message.author
         server = message.server
-        self.mee6.db.redis.set('server:{}:name'.format(server.id), server.name)
+        await self.mee6.db.redis.set('server:{}:name'.format(server.id), server.name)
         if server.icon:
-            self.mee6.db.redis.set('server:{}:icon'.format(server.id), server.icon)
+            await self.mee6.db.redis.set('server:{}:icon'.format(server.id), server.icon)
         if server.icon:
-            storage.sadd('server:icon', server.icon)
-        storage.sadd('players', player.id)
-        storage.set('player:{}:name'.format(player.id), player.name)
-        storage.set('player:{}:discriminator'.format(player.id), player.discriminator)
-        storage.set('player:{}:avatar'.format(player.id), player.avatar)
+            await storage.sadd('server:icon', server.icon)
+        await storage.sadd('players', player.id)
+        await storage.set('player:{}:name'.format(player.id), player.name)
+        await storage.set('player:{}:discriminator'.format(player.id), player.discriminator)
+        await storage.set('player:{}:avatar'.format(player.id), player.avatar)
 
         # Is the player good to go ?
-        check = storage.get('player:{}:check'.format(player.id))
+        check = await storage.get('player:{}:check'.format(player.id))
         if check:
             return
 
         # Get the player lvl
-        lvl = storage.get('player:{}:lvl'.format(player.id))
+        lvl = await storage.get('player:{}:lvl'.format(player.id))
         if lvl is None:
-            storage.set('player:{}:lvl'.format(player.id), 0)
+            await storage.set('player:{}:lvl'.format(player.id), 0)
             lvl = 0
         else:
             lvl = int(lvl)
 
         # Give random xp between 5 and 10
-        storage.incr('player:{}:xp'.format(player.id), amount=randint(5,10))
+        await storage.incrby('player:{}:xp'.format(player.id), randint(5,10))
         # Block the player for 60 sec (that's 1 min btw...)
-        storage.set('player:{}:check'.format(player.id), '1', ex=60)
+        await storage.set('player:{}:check'.format(player.id), '1', expire=60)
         # Get the new player xp
-        player_xp = storage.get('player:{}:xp'.format(player.id))
+        player_xp = await storage.get('player:{}:xp'.format(player.id))
         # Update the level
-        storage.set('player:{}:lvl'.format(player.id), Levels._get_level_from_xp(player_xp))
+        await storage.set('player:{}:lvl'.format(player.id), Levels._get_level_from_xp(player_xp))
         # Comparing the level before and after
-        new_level = int(storage.get('player:{}:lvl'.format(player.id)))
+        new_level = int(await storage.get('player:{}:lvl'.format(player.id)))
         if new_level != lvl:
             # Check if announcement is good
-            announcement_enabled = storage.get('announcement_enabled')
+            announcement_enabled = await storage.get('announcement_enabled')
             if announcement_enabled:
-                announcement = storage.get('announcement')
+                announcement = await storage.get('announcement')
                 await self.mee6.send_message(message.channel, announcement.format(
                     player = player.mention,
                     level = new_level

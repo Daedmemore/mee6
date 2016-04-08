@@ -11,12 +11,12 @@ class Welcome(Plugin):
 
     async def on_member_join(self, member):
         server = member.server
-        storage = self.get_storage(server)
-        welcome_message = storage.get('welcome_message').format(
+        storage = await self.get_storage(server)
+        welcome_message = await storage.get('welcome_message').format(
             server = server.name,
             user = member.mention
         )
-        channel_name = storage.get('channel_name')
+        channel_name = await storage.get('channel_name')
 
         destination = server
         channel = discord.utils.find(lambda c: c.name == channel_name, server.channels)
