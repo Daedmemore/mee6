@@ -70,7 +70,8 @@ class Streamers(Plugin):
                 # Announce
                 announcement_msg = await storage.get('announcement_msg')
                 announcement_msg = announcement_msg.format(
-                    streamer=live_streamer['channel']['name']
+                    streamer=live_streamer['channel']['name'],
+                    link='http://twitch.tv/'+live_streamer['channel']['name']
                 )
                 a_c = await storage.get('announcement_channel')
                 announcement_channel = discord.utils.get(
