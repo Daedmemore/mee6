@@ -59,7 +59,8 @@ class Mee6(discord.Client):
         for server in self.servers:
             log.debug('Adding server {}\'s id to db'.format(server.id))
             await self.db.redis.sadd('servers', server.id)
-            await self.db.redis.set('server:{}:name'.format(server.id), server.name)
+            if server.name:
+                await self.db.redis.set('server:{}:name'.format(server.id), server.name)
             if server.icon:
                 await self.db.redis.set('server:{}:icon'.format(server.id), server.icon)
 
