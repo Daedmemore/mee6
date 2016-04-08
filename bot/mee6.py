@@ -217,7 +217,10 @@ class Mee6(discord.Client):
             self.loop.create_task(plugin.on_server_role_update(before, after))
 
     async def on_voice_state_update(self, before, after):
-        server = after.server
+        if after is None:
+            server = before.server
+        else:
+            server = after.server
         enabled_plugins = await self.get_plugins(server)
         for plugin in enabled_plugins:
             self.loop.create_task(plugin.on_voice_state_update(before, after))
