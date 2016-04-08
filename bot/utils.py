@@ -1,14 +1,9 @@
-from discord import Server
+import re
 
-def find_server(*args, **kwargs):
-    for arg in args:
-        if isinstance(arg, Server):
-            return arg
-        elif hasattr(arg, 'server'):
-            return arg.server
-    for key, value in kwargs.items():
-        if isinstance(arg, Server):
-            return value
-        elif hasattr(value, 'server'):
-            return arg.server
-    return None
+def parse_redis_url(redis_url):
+    pattern = r'redis:\/\/([a-zA-Z0-9.]*):?([0-9]*)?'
+    result = re.match(pattern, redis_url).groups()
+    if result[1]:
+        return (result[0], int(result[1]))
+    else:
+        return (result[0], 6379)
