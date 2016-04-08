@@ -15,7 +15,7 @@ class AnimuAndMango(Plugin):
 
     fancy_name = 'Animu and Mango'
 
-    def get_commands(self, server):
+    async def get_commands(self, server):
         commands = [
             {
                 'name': '!animu <animu_name>',

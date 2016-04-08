@@ -9,7 +9,7 @@ class Commands(Plugin):
 
     async def get_commands(self, server):
         storage = await self.get_storage(server)
-        commands = sorted(storage.smembers('commands'))
+        commands = sorted(await storage.smembers('commands'))
         cmds = []
         for command in commands:
             cmd = {

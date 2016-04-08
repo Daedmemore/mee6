@@ -24,7 +24,5 @@ class Db(object):
             plugin.__class__.__name__,
             server.id
         )
-        storage = Storage(namespace, self.redis_url)
-        await storage.create()
-
+        storage = Storage(namespace, self.redis)
         return storage

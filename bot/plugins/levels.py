@@ -7,7 +7,7 @@ class Levels(Plugin):
 
     fancy_name = 'Levels'
 
-    def get_commands(self, server):
+    async def get_commands(self, server):
         commands = [
             {
                 'name': '!levels',
@@ -112,11 +112,12 @@ class Levels(Plugin):
                 x += int(100*(1.2**l))
             remaining_xp = int(int(player_total_xp) - x)
             level_xp = int(Levels._get_level_xp(int(player_lvl)))
-            players = storage.sort('players'.format(message.server.id),
+            players = await storage.sort('players'.format(message.server.id),
                         by='player:*:xp'.format(message.server.id),
-                        start=0,
-                        num=-1,
-                        desc=True)
+                        offset=0,
+                        count=-1
+                        )
+            players = list(reversed(players))
             player_rank = players.index(player.id)+1
 
             if player != message.author:

@@ -5,7 +5,7 @@ class Git(Plugin):
 
     fancy_name='Git Repo'
 
-    def get_commands(self, server):
+    async def get_commands(self, server):
         commands = [
             {
                 'name': '!git',

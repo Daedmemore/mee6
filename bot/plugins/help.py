@@ -1,17 +1,16 @@
 from plugin import Plugin
-import asyncio
 import logging
 from types import MethodType
 
 log = logging.getLogger('discord')
 
-def get_help_info(self, server):
+async def get_help_info(self, server):
     if self.fancy_name is None:
         self.fancy_name = type(self).__name__
     payload = {
         'name': type(self).__name__,
         'fancy_name': self.fancy_name,
-        'commands': self.get_commands(server)
+        'commands': await self.get_commands(server)
     }
     return payload
 
@@ -23,14 +22,14 @@ class Help(Plugin):
         # Patch the Plugin class
         Plugin.get_help_info = get_help_info
 
-    def generate_help(self, server):
-        enabled_plugins = self.mee6.plugin_manager.get_all(server)
+    async def generate_help(self, server):
+        enabled_plugins = await self.mee6.plugin_manager.get_all(server)
         enabled_plugins = sorted(enabled_plugins, key=lambda p: type(p).__name__)
 
         help_payload = []
         for plugin in enabled_plugins:
             if not isinstance(plugin, Help) and hasattr(plugin, 'get_commands'):
-                help_info = plugin.get_help_info(server)
+                help_info = await plugin.get_help_info(server)
                 help_payload.append(help_info)
 
         return self.render_message(help_payload)
@@ -45,8 +44,7 @@ class Help(Plugin):
         return message
 
 
-    @asyncio.coroutine
-    def on_message(self, message):
+    async def on_message(self, message):
         if message.content =='!help':
             log.info('{}#{}@{} >> !help'.format(
                 message.author.name,
@@ -54,7 +52,7 @@ class Help(Plugin):
                 message.server.name
             ))
             server = message.server
-            help_message = self.generate_help(server)
+            help_message = await self.generate_help(server)
             if help_message == '':
                 help_message = "There's no command to show :cry:"
-            yield from self.mee6.send_message(message.channel, help_message)
+            await self.mee6.send_message(message.channel, help_message)

@@ -4,17 +4,9 @@ from utils import parse_redis_url
 
 class Storage():
     """Adds a prefix to Redis"""
-    def __init__(self, namespace, redis_url):
+    def __init__(self, namespace, redis):
         self.namespace = namespace
-        self.loop = asyncio.get_event_loop()
-        self.loop.create_task(self.create())
-        self.redis_address = parse_redis_url(redis_url)
-
-    async def create(self):
-        self.redis = await aioredis.create_redis(
-            self.redis_address,
-            encoding="utf8"
-        )
+        self.redis = redis
 
     async def set(self, key, value, expire=0):
         key = self.namespace + key
@@ -44,7 +36,7 @@ class Storage():
                    asc=None, alpha=False, store=None):
         key = self.namespace + key
         if by:
-            by = namespace + by
+            by = self.namespace + by
         return await self.redis.sort(key, *get_patterns, by=by, offset=offset,
                                      count=None, asc=None, alpha=False,
                                      store=None)
@@ -52,6 +44,10 @@ class Storage():
     async def ttl(self, key):
         key = self.namespace + key
         return await self.redis.ttl(key)
+
+    async def expire(self, key, timeout):
+        key = self.namespace + key
+        return await self.redis.expire(key, timeout)
 
     async def incr(self, key):
         key = self.namespace + key

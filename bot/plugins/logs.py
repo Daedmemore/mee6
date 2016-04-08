@@ -10,7 +10,7 @@ class Logs(Plugin):
 
     fancy_name = "Logs"
 
-    def get_commands(self, server):
+    async def get_commands(self, server):
         commands = [
             {
                 'name': '!logs',
