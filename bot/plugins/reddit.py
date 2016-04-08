@@ -63,6 +63,10 @@ class Reddit(Plugin):
 
     async def cron_job(self):
         for server in self.mee6.servers:
+            enabled_plugins = await self.mee6.get_plugins(server)
+            if self not in enabled_plugins:
+                continue
+
             storage = await self.get_storage(server)
             if storage is None:
                 continue

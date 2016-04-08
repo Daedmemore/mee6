@@ -37,12 +37,16 @@ class Streamers(Plugin):
     async def get_live_streamers(self, streamers):
         """Gets all the streamers that are live from a list of streamers"""
         # Getting all the streamers live
-        url = "https://api.twitch.tv/kraken/streams?channel={}&stream_type=live&limit=100"
-        with aiohttp.ClientSession() as session:
-            async with session.get(url.format(",".join(streamers))) as resp:
-                result = await resp.json()
-                live_streamers_list = map(lambda s:(s['channel']['name'], s), result['streams'])
-                live_streamers = {name: info for name, info in live_streamers_list}
+        live_streamers = {}
+        streamers = list(streamers)
+        for i in range(0, 1+int(len(streamers)/100)):
+            url = "https://api.twitch.tv/kraken/streams?channel={}&stream_type=live&limit=100"
+            with aiohttp.ClientSession() as session:
+                async with session.get(url.format(",".join(streamers[i*100:(i+1)*100]))) as resp:
+                    result = await resp.json()
+                    live_streamers_list = map(lambda s:(s['channel']['name'], s), result['streams'])
+                    _live_streamers = {name: info for name, info in live_streamers_list}
+                    live_streamers = {**live_streamers, **_live_streamers}
         return live_streamers
 
     async def announce_live(self, server, live_streamers):
@@ -62,9 +66,10 @@ class Streamers(Plugin):
                 ))
                 # Check if already announced
                 if str(live_streamer['_id']) in streamer_ids:
-                    return
+                    continue
                 # Announce
-                announcement_msg = await storage.get('announcement_msg').format(
+                announcement_msg = await storage.get('announcement_msg')
+                announcement_msg = announcement_msg.format(
                     streamer=live_streamer['channel']['name']
                 )
                 a_c = await storage.get('announcement_channel')

@@ -115,6 +115,22 @@ class Mee6(discord.Client):
         plugins = await self.plugin_manager.get_all(server)
         return plugins
 
+    async def send_message(self, *args, **kwargs):
+        counter = 0
+        while counter!=3:
+            try:
+                await super().send_message(*args, **kwargs)
+                counter=2
+            except discord.errors.HTTPException as e:
+                if e.response.status==502:
+                    log.info('502 HTTP Exception, retrying...')
+                else:
+                    log.info('{} HTTP Exception.'.format(
+                        e.response.status
+                    ))
+                    counter=2
+            counter+=1
+
     async def on_message(self, message):
         server = message.server
         enabled_plugins = await self.get_plugins(server)
