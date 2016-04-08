@@ -1,4 +1,3 @@
-import redis
 import aioredis
 import asyncio
 import logging
