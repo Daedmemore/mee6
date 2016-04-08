@@ -38,7 +38,7 @@ class Streamers(Plugin):
         """Gets all the streamers that are live from a list of streamers"""
         # Getting all the streamers live
         live_streamers = {}
-        streamers = list(streamers)
+        streamers = list(map(lambda s: s.replace(' ', ''), streamers))
         for i in range(0, 1+int(len(streamers)/100)):
             url = "https://api.twitch.tv/kraken/streams?channel={}&stream_type=live&limit=100"
             with aiohttp.ClientSession() as session:
