@@ -1,57 +1,87 @@
-from redis import Redis
-from redis import ConnectionPool
-from functools import wraps
-import inspect
+import asyncio
+import aioredis
+from utils import parse_redis_url
 
-def prefixer(function, pref_type):
-    if pref_type == 'name':
-        @wraps(function)
-        def wrapper(self, *args, **kwargs):
-            return function(self, self.namespace + args[0], *(args[1:]), **kwargs)
-        return wrapper
-    elif pref_type == 'names':
-        @wraps(function)
-        def wrapper(self, *args, **kwargs):
-            args = list(map(lambda name: self.namespace + name, args))
-            return function(self, *args, **kwargs)
-        return wrapper
-    elif pref_type == 'src/dst':
-        @wraps(function)
-        def wrapper(self, *args, **kwargs):
-            return function(self, self.namespace + args[0], self.namespace + args[1], *(args[2:]), **kwargs)
-        return wrapper
-    elif pref_type == 'keys':
-        @wraps(function)
-        def wrapper(self, *args, **kwargs):
-            args = list(map(lambda name: self.namespace + name, args))
-            return function(self, *args, **kwargs)
-        return wrapper
+class Storage():
+    """Adds a prefix to Redis"""
+    def __init__(self, namespace, redis_url):
+        self.namespace = namespace
+        self.loop = asyncio.get_event_loop()
+        self.loop.create_task(self.create())
+        self.redis_address = parse_redis_url(redis_url)
 
+    async def create(self):
+        self.redis = await aioredis.create_redis(
+            self.redis_address,
+            encoding="utf8"
+        )
 
-def prefix_methods(cls):
-    for attr, value in inspect.getmembers(cls.__bases__[0]):
-        method = value
-        if inspect.isfunction(method):
-            args = inspect.getargspec(method)[0]
-            varargs = inspect.getargspec(method)[1]
-            if len(args)>1 and args[1] == 'name':
-                setattr(cls, attr, prefixer(method, 'name'))
-            elif varargs == 'names':
-                setattr(cls, attr, prefixer(method, 'names'))
-            elif 'src' in args and 'dst' in args:
-                setattr(cls, attr, prefixer(method, 'src/dst'))
-            elif len(args)>1 and args[1] == 'keys':
-                setattr(cls, attr, prefixer(method, 'keys'))
-    return cls
+    async def set(self, key, value, expire=0, pexpire=0, exist=None):
+        key = self.namespace + key
+        return await self.redis.set(
+            key,
+            value,
+            expire=expire,
+            pexpire=pexpire,
+            exist=exist
+        )
 
-@prefix_methods
-class Storage(Redis):
-    def __init__(self, *args, **kwargs):
-        self.namespace = kwargs.pop('namespace')
-        Redis.__init__(self, *args, **kwargs)
+    async def get(self, key):
+        key = self.namespace + key
+        return await self.redis.get(key)
 
-    @classmethod
-    def from_url(cls, url, db=None, **kwargs):
-        namespace = kwargs.pop('namespace')
-        connection_pool = ConnectionPool.from_url(url, db=db, **kwargs)
-        return cls(connection_pool=connection_pool, namespace=namespace)
+    async def smembers(self, key):
+        key = self.namespace + key
+        return await self.redis.smembers(key)
+
+    async def sadd(self, key, member, *members):
+        key = self.namespace + key
+        return await self.redis.sadd(key, member, *members)
+
+    async def delete(self, key, *keys):
+        key = self.namespace + key
+        return await self.redis.dete(key, *keys)
+
+    async def sort(self, key, *get_patterns, by=None, offset=None, count=None,
+                   asc=None, alpha=False, store=None):
+        key = self.namespace + key
+        if by:
+            by = namespace + by
+        return await self.redis.sort(key, *get_patterns, by=by, offset=offset,
+                                     count=None, asc=None, alpha=False,
+                                     store=None)
+
+    async def ttl(self, key):
+        key = self.namespace + key
+        return await self.redis.ttl(key)
+
+    async def incr(self, key):
+        key = self.namespace + key
+        return await self.redis.incr(key)
+
+    async def incrby(self, key, amount):
+        key = self.namespace + key
+        return await self.redis.incrby(key, amount)
+
+    async def setnx(self, key, value):
+        key = self.namespace + key
+        return await self.redis.setnx(key, value)
+
+    async def lpush(self, key, value, *values):
+        key = self.namespace + key
+        return await self.redis.lpush(key, value, *values)
+
+    async def lrange(self, key, start, stop):
+        key = self.namespace + key
+        return await self.redis.lrange(key, start, stop)
+
+    async def lrem(self, key, count, value):
+        key = self.namespace + key
+        return await self.redis.lrem(key, count, value)
+
+    async def lset(self, key, index, value):
+        key = self.namespace + key
+        return await self.redis.lset(key, index, value)
+
+    async def ltrim(self, start, stop):
+        return await self.redis.ltrim(start, stop)
