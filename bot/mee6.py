@@ -202,7 +202,15 @@ class Mee6(discord.Client):
             self.loop.create_task(plugin.on_server_role_delete(server, role))
 
     async def on_server_role_update(self, before, after):
-        server = after.server
+        server = None
+        for s in self.servers:
+            if after.id in map(lambda r:r.id, s.roles):
+                server = s
+                break
+
+        if server is None:
+            return
+
         enabled_plugins = await self.get_plugins(server)
         for plugin in enabled_plugins:
             self.loop.create_task(plugin.on_server_role_update(before, after))

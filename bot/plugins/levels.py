@@ -158,7 +158,8 @@ class Levels(Plugin):
         await storage.sadd('players', player.id)
         await storage.set('player:{}:name'.format(player.id), player.name)
         await storage.set('player:{}:discriminator'.format(player.id), player.discriminator)
-        await storage.set('player:{}:avatar'.format(player.id), player.avatar)
+        if player.avatar:
+            await storage.set('player:{}:avatar'.format(player.id), player.avatar)
 
         # Is the player good to go ?
         check = await storage.get('player:{}:check'.format(player.id))
