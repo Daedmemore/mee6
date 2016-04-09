@@ -1,0 +1,35 @@
+{% extends 'full-page.html' %}
+{% block content %}
+<div class="jumbotron home-jumbotron">
+  <div class="container">
+    <div class="row">
+        <div class="col-md-offset-2 col-md-8 animated bounceInLeft v-align">
+		<center>
+		<p>
+		<img src="{{url_for('static', filename='img/cookie.jpg')}}" class="img-circle">
+		</p>
+		<p>Hi, I'm cookie, thanks for stopping by ;) .</p>
+		</center>
+		<p>
+		<strong>Mee6</strong> costs me time and money. Unfortunatly, we live in a world where <em>there's no such thing as a free meal</em>. So if you really like the bot and if you have some money to spare, you can support the project by making a donation.</p>
+		<p>
+		The collected money will allow me to get more powerful <strong>servers</strong> and tackle some <strong>ambitious</strong> part of the developement of <strong>Mee6</strong>. <span style="font-size:0.4em"><strong>Someone said <em>music plugin</em>?</strong></span>
+		</p>
+		<p>
+		As a little reward, for those who gave more than <strong>€3</strong>, you'll get the status of <strong>Early Backers</strong>! Yay! :D</p>
+		<p>
+		<strong>Early Backer</strong> will have an early access to exclusive new content and experimental plugins ;) . <span style="font-size:0.4em"><strong>MUSIC PLUGIN!!!</strong></span>
+		</p>
+		<p>
+		<center>
+			<a class="btn btn-home btn-lg" href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=ZGDY5W6S2ALX6" target="_blank">I want to donate</a><br/>
+			<small>Do not forget to specify your discord tag please.</small>
+		</center>
+		</p>
+	</div>
+	    </div>
+        </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
