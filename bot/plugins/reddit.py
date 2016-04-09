@@ -62,7 +62,8 @@ class Reddit(Plugin):
         return posts[:i]
 
     async def cron_job(self):
-        for server in self.mee6.servers:
+        servers = self.mee6.servers
+        for server in servers:
             enabled_plugins = await self.mee6.get_plugins(server)
             if self not in enabled_plugins:
                 continue
