@@ -350,6 +350,11 @@ def update_levels(server_id):
 
 @app.route('/levels/<int:server_id>')
 def levels(server_id):
+    is_admin = False
+    if session.get('user'):
+        user_servers = get_user_servers(session['user'], session['guilds'])
+        is_admin = str(server_id) in list(map(lambda s:s['id'], user_servers))
+
     server_check = str(server_id) in db.smembers('servers')
     if not server_check:
         return redirect(url_for('index'))
@@ -396,7 +401,17 @@ def levels(server_id):
             'id': _players[i+5]
         }
         players.append(player)
-    return render_template('levels.html', players=players, server=server, title="{} leaderboard - Mee6 bot".format(server['name']))
+    return render_template('levels.html', is_admin=is_admin, players=players, server=server, title="{} leaderboard - Mee6 bot".format(server['name']))
+
+@app.route('/levels/reset/<int:server_id>/<int:player_id>')
+@require_auth
+@require_bot_admin
+@server_check
+def reset_player(server_id, player_id):
+    db.delete('Levels.{}:player:{}:xp'.format(server_id, player_id))
+    db.delete('Levels.{}:player:{}:lvl'.format(server_id, player_id))
+    db.srem('Levels.{}:players'.format(server_id), player_id)
+    return redirect(url_for('levels', server_id=server_id))
 
 @app.route('/dashboard/<int:server_id>/welcome')
 @require_auth

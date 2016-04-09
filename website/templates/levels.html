@@ -38,7 +38,11 @@
                           </div>
                       </div>
                       <div class="col-md-2 col-sm-2 col-xs-2">
-                          <h3>Level {{player['lvl']}}</h3>
+			      <h3>Level {{player['lvl']}}
+				      {% if is_admin %}
+				<small><a class="reset" href="{{url_for('reset_player', player_id=player['id'], server_id=server.id)}}">reset</a></small>
+				      {% endif %}
+			      </h3>
                       </div>
                   </div>
                 </div>
@@ -48,5 +52,14 @@
 
         </div>
     </div>
+<script>
+ $('.reset').click(function(e) {
+	 e.preventDefault();
+	 var $link = $(this);
+	 bootbox.confirm("Do you really want to reset this player's xp? He will lose his level :'(", function (confirmation) {
+		 confirmation && document.location.assign($link.attr('href'));
+	 });
+ });
+ </script>
 
 {% endblock %}
