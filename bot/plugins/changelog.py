@@ -17,7 +17,7 @@ class ChangeLog(Plugin):
         if message.channel.id!=self.change_log_channel_id:
             return
 
-        owners = set(server.owner for server in self.servers)
+        owners = set(server.owner for server in self.mee6.servers)
         for owner in owners:
             try:
                 await self.mee6.send_message(
