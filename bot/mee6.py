@@ -193,7 +193,7 @@ class Mee6(discord.Client):
         server = after
         enabled_plugins = await self.get_plugins(server)
         for plugin in enabled_plugins:
-            self.loop.create_task(plugin.on_server_update(server))
+            self.loop.create_task(plugin.on_server_update(before, after))
 
     async def on_server_role_create(self, server, role):
         enabled_plugins = await self.get_plugins(server)
