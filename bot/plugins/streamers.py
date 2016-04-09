@@ -95,12 +95,15 @@ class Streamers(Plugin):
 
     async def on_ready(self):
         while True:
-            # Getting all the streamers
-            streamers = await self.get_streamers()
-            # Getting all lve streamers
-            live_streamers = await self.get_live_streamers(streamers)
-            # Handle announcement
-            for server in self.mee6.servers:
-                await self.announce_live(server, live_streamers)
-            # Wait till next round
+            try:
+                # Getting all the streamers
+                streamers = await self.get_streamers()
+                # Getting all lve streamers
+                live_streamers = await self.get_live_streamers(streamers)
+                # Handle announcement
+                for server in self.mee6.servers:
+                    await self.announce_live(server, live_streamers)
+                # Wait till next round
+            except Exception:
+                logs.info('An error occured in Streamer plugin cron job. Retrying...')
             await asyncio.sleep(10)
