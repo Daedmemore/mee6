@@ -187,11 +187,18 @@ class Levels(Plugin):
         if new_level != lvl:
             # Check if announcement is good
             announcement_enabled = await storage.get('announcement_enabled')
+            whisp = await storage.get('whisp')
             if announcement_enabled:
+                dest = message.channel
+                mention = player.mention
+                if whisp:
+                    dest = player
+                    mention = player.name
+
                 announcement = await storage.get('announcement')
-                await self.mee6.send_message(message.channel, announcement.replace(
+                await self.mee6.send_message(dest, announcement.replace(
                     "{player}",
-                    player.mention,
+                    mention,
                 ).replace(
                     "{level}",
                     str(new_level)

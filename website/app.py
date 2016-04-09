@@ -281,6 +281,7 @@ def plugin_levels(server_id):
 
     initial_announcement = 'GG {player}, you just advanced to **level {level}** !'
     announcement_enabled = db.get('Levels.{}:announcement_enabled'.format(server_id))
+    whisp = db.get('Levels.{}:whisp'.format(server_id))
     announcement = db.get('Levels.{}:announcement'.format(server_id))
     if announcement is None:
         db.set('Levels.{}:announcement'.format(server_id), initial_announcement)
@@ -301,7 +302,8 @@ def plugin_levels(server_id):
         announcement_enabled = announcement_enabled,
         banned_members = banned_members,
         banned_roles = banned_roles,
-        cooldown = cooldown
+        cooldown = cooldown,
+        whisp=whisp
         )
 
 @app.route('/dashboard/<int:server_id>/levels/update', methods=['POST'])
@@ -316,6 +318,8 @@ def update_levels(server_id):
     banned_roles = request.form.getlist('banned_roles[]')
     announcement = request.form.get('announcement')
     enable = request.form.get('enable')
+    whisp = request.form.get('whisp')
+    print(whisp)
     cooldown = request.form.get('cooldown')
 
     try:
@@ -342,6 +346,11 @@ def update_levels(server_id):
             db.set('Levels.{}:announcement_enabled'.format(server_id), '1')
         else:
             db.delete('Levels.{}:announcement_enabled'.format(server_id))
+
+        if whisp:
+            db.set('Levels.{}:whisp'.format(server_id), '1')
+        else:
+            db.delete('Levels.{}:whisp'.format(server_id))
 
         flash('Settings updated ;) !', 'success')
 
