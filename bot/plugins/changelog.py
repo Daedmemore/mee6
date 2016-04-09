@@ -8,8 +8,8 @@ class ChangeLog(Plugin):
     """A Plugin to forward the changelogs to all the server owners"""
 
     is_global = True
-    change_log_channel_id = ''
-    change_log_server_id = ''
+    change_log_channel_id = '160784396679380992'
+    change_log_server_id = '159962941502783488'
 
     async def on_message(self, message):
         if message.server.id!=self.change_log_server_id:

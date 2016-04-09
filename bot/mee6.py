@@ -18,6 +18,7 @@ from plugins.reddit import Reddit
 # Global plugins
 from plugins.basiclogs import BasicLogs
 from plugins.stats import Stats
+from plugins.changelog import ChangeLog
 from plugins.asciiwelcome import AsciiWelcome
 from plugins.mee6game import Mee6Game
 
