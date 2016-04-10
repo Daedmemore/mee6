@@ -22,31 +22,41 @@ class Reddit(Plugin):
                 pass
         return list(map(lambda p:p['data'], posts))
 
-    async def display_post(self, post, server):
+    async def display_posts(self, posts, server):
         storage = await self.get_storage(server)
         destination_name = await storage.get('display_channel')
         display_channel = discord.utils.get(server.channels, name=destination_name)
         destination = display_channel or server
 
-        selftext = post['selftext']
-        if selftext:
-            selftext = post['selftext'][:400]
+        responses = [""]
+        for post in posts:
+            selftext = post['selftext']
+            if selftext:
+                selftext = post['selftext'][:400]
 
-        response = """`New post from /r/{subreddit}`
+            tail = """`New post from /r/{subreddit}`
 
-        **{title}** *by {author}*
-        {content}
-        **Link** {link}
-        """.format(
-            title=post['title'],
-            subreddit=post['subreddit'],
-            author=post['author'],
-            content=selftext,
-            link=post['url']
-        )
+            **{title}** *by {author}*
+            {content}
+            **Link** {link}
+            """.format(
+                title=post['title'],
+                subreddit=post['subreddit'],
+                author=post['author'],
+                content=selftext,
+                link=post['url']
+            )
+            print(len(tail+responses[-1]))
+            if len(tail+responses[-1])>2000:
+                responses.append(tail)
+            else:
+                responses[-1] += tail
 
-        await self.mee6.send_message(destination, response)
-        await storage.set('{}:last'.format(post['subreddit'].lower()), post['id'])
+        for response in responses:
+            await self.mee6.send_message(destination, response)
+
+        if posts:
+            await storage.set('{}:last'.format(posts[-1]['subreddit'].lower()), posts[-1]['id'])
 
     async def get_to_announce(self, posts, server):
         storage = await self.get_storage(server)
@@ -78,15 +88,14 @@ class Reddit(Plugin):
                 if not last_posts:
                     continue
 
-                to_announce = reversed(await self.get_to_announce(last_posts, server))
-                for post in to_announce:
-                    await self.display_post(post, server)
-                    await storage.set('{}:last'.format(post['subreddit']), post['id'])
+                to_announce = list(reversed(await self.get_to_announce(last_posts, server)))
+                await self.display_posts(to_announce, server)
 
     async def on_ready(self):
         while True:
             try:
                 await self.cron_job()
-            except Exception:
-                logs.info('An error occured in the Reddit cron job. Retrying...')
+            except Exception as e:
+                print('lol')
+                raise(e)
             await asyncio.sleep(20)
