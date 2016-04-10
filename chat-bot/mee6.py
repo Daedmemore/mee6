@@ -13,7 +13,7 @@ from plugins.animu import AnimuAndMango
 from plugins.logs import Logs
 from plugins.git import Git
 from plugins.streamers import Streamers
-from plugins.reddit import Reddit
+#from plugins.reddit import Reddit
 
 # Global plugins
 from plugins.basiclogs import BasicLogs
