@@ -95,24 +95,6 @@ class Mee6(discord.Client):
             await self.db.redis.set('heartbeat', 1, expire=interval)
             await asyncio.sleep(0.9 * interval)
 
-    async def update_stats(self, interval):
-        """Send basic stats to the db every interval seconds"""
-        while self.is_logged_in:
-            # Total members and online members
-            members = list(self.get_all_members())
-            online_members = filter(lambda m: m.status is discord.Status.online, members)
-            online_members = list(online_members)
-            await self.db.redis.set('mee6:stats:online_members', len(online_members))
-            await self.db.redis.set('mee6:stats:members', len(members))
-
-            # Last messages
-            for index, timestamp in enumerate(self.last_messages):
-                if timestamp + interval < time():
-                    self.last_messages.pop(index)
-            await self.db.redis.set('mee6:stats:last_messages', len(self.last_messages))
-
-            await asyncio.sleep(interval)
-
     async def get_plugins(self, server):
         plugins = await self.plugin_manager.get_all(server)
         return plugins
