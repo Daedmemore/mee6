@@ -134,7 +134,7 @@ class Mee6(discord.Client):
             counter+=1
 
     async def on_message(self, message):
-        if message.server is None:
+        if message.channel.is_private:
             return
 
         server = message.server
