@@ -161,8 +161,9 @@ class Mee6(discord.Client):
             self.loop.create_task(plugin.on_message_delete(message))
 
     async def on_channel_create(self, channel):
-        if not hasattr(channel, 'server'):
+        if channel.is_private:
             return
+
         server = channel.server
         enabled_plugins = await self.get_plugins(server)
         for plugin in enabled_plugins:
@@ -175,8 +176,9 @@ class Mee6(discord.Client):
             self.loop.create_task(plugin.on_channel_update(before, after))
 
     async def on_channel_delete(self, channel):
-        if not hasattr(channel, 'server'):
+        if channel.is_private:
             return
+
         server = channel.server
         enabled_plugins = await self.get_plugins(server)
         for plugin in enabled_plugins:
