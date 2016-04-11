@@ -49,6 +49,9 @@ class Plugin(object, metaclass=PluginMount):
     async def on_member_update(self, before, after):
         pass
 
+    async def on_server_join(self, server):
+        pass
+
     async def on_server_update(self, before, after):
         pass
 
