@@ -9,16 +9,22 @@ class Stats(Plugin):
 
     is_global = True
 
-    async def on_ready(self):
-        """Send basic stats to the db every interval seconds"""
-        while True:
-            # Total members and online members
-            members = (self.mee6.get_all_members())
-            online_members = filter(lambda m: m.status is discord.Status.online, members)
-            online_members = list(online_members)
-            members = list(members)
-            await self.db.redis.set('mee6:stats:online_members', len(online_members))
-            await self.db.redis.set('mee6:stats:members', len(members))
+    async def on_server_join(self, server):
+        for member in server.members:
+            await self.db.redis.sadd('mee6:stats:users', member.id)
 
-            await asyncio.sleep(10)
+    async def on_channel_create(self, channel):
+        await self.db.redis.sadd('mee6:stats:channels', channel.id)
+
+    async def on_ready(self):
+        """Initialize stats"""
+
+        # Total members
+        members = set(self.mee6.get_all_members())
+        channels = set(self.mee6.get_all_channels())
+
+        for channel in channels:
+            await self.db.redis.sadd('mee6:stats:channels', channel.id)
+        for member in members:
+            await self.db.redis.sadd('mee6:stats:users', member.id)
 
