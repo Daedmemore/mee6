@@ -16,6 +16,10 @@ class Stats(Plugin):
     async def on_channel_create(self, channel):
         await self.db.redis.sadd('mee6:stats:channels', channel.id)
 
+    async def on_message(self, message):
+        if message.author.id == self.mee6.user.id:
+            await self.db.redis.incr('mee6:stats:msg')
+
     async def on_ready(self):
         """Initialize stats"""
 
