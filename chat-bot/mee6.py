@@ -227,8 +227,11 @@ class Mee6(discord.Client):
     async def on_voice_state_update(self, before, after):
         if after is None:
             server = before.server
-        else:
+        elif before is None:
             server = after.server
+        else:
+            return
+
         enabled_plugins = await self.get_plugins(server)
         for plugin in enabled_plugins:
             self.loop.create_task(plugin.on_voice_state_update(before, after))
