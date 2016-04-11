@@ -79,6 +79,11 @@ class Mee6(discord.Client):
         if server.icon:
             await self.db.redis.set('server:{}:icon'.format(server.id), server.icon)
 
+        # Dispatching to global plugins
+        for plugin in self.plugins:
+            if plugin.is_global:
+                self.loop.create_task(plugin.on_server_join(server))
+
     async def on_server_remove(self, server):
         """Called when leaving or kicked from a server
 
