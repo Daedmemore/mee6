@@ -170,6 +170,9 @@ class Mee6(discord.Client):
             self.loop.create_task(plugin.on_channel_create(channel))
 
     async def on_channel_update(self, before, after):
+        if before.is_private:
+            return
+
         server = after.server
         enabled_plugins = await self.get_plugins(server)
         for plugin in enabled_plugins:
