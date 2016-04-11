@@ -249,6 +249,9 @@ class Mee6(discord.Client):
             self.loop.create_task(plugin.on_member_unban(member))
 
     async def on_typing(self, channel, user, when):
+        if channel.is_private:
+            return
+
         server = channel.server
         enabled_plugins = await self.get_plugins(server)
         for plugin in enabled_plugins:
