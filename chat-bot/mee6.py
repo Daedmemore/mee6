@@ -143,12 +143,18 @@ class Mee6(discord.Client):
             self.loop.create_task(plugin.on_message(message))
 
     async def on_message_edit(self, before, after):
+        if before.channel.is_private:
+            return
+
         server = after.server
         enabled_plugins = await self.get_plugins(server)
         for plugin in enabled_plugins:
             self.loop.create_task(plugin.on_message_edit(before, after))
 
     async def on_message_delete(self, message):
+        if message.channel.is_private:
+            return
+
         server = message.server
         enabled_plugins = await self.get_plugins(server)
         for plugin in enabled_plugins:
