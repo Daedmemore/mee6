@@ -16,6 +16,13 @@ server=server,
 enabled_plugins=enabled_plugins
 )}}
 {{ plugin.view(
+'Moderator',
+view='plugin_moderator',
+description='Cool moderator commands! slowmode/clear/mute',
+server=server,
+enabled_plugins=enabled_plugins
+)}}
+{{ plugin.view(
 'AnimuAndMango',
 pretty_name='Animu and Mango',
 view='plugin_animu',
