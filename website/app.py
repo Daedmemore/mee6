@@ -733,6 +733,73 @@ def update_reddit(server_id):
     flash('Configuration updated with success!', 'success')
     return redirect(url_for('plugin_reddit', server_id=server_id))
 
+@app.route('/dashboard/<int:server_id>/moderator')
+@require_auth
+@require_bot_admin
+@server_check
+def plugin_moderator(server_id):
+    disable = request.args.get('disable')
+    if disable:
+        db.srem('plugins:{}'.format(server_id), 'Moderator')
+        return redirect(url_for('dashboard', server_id=server_id))
+
+    db.sadd('plugins:{}'.format(server_id), 'Moderator')
+
+    servers = session['guilds']
+    server = list(filter(lambda g:g['id']==str(server_id), servers))[0]
+    enabled_plugins = db.smembers('plugins:{}'.format(server_id))
+
+    roles = db.smembers('Moderator.{}:roles'.format(server_id))
+    clear = db.get('Moderator.{}:clear'.format(server_id))
+    banned_words = db.get('Moderator.{}:banned_words'.format(server_id))
+    slowmode = db.get('Moderator.{}:slowmode'.format(server_id))
+    mute = db.get('Moderator.{}:mute'.format(server_id))
+
+    return render_template(
+        'plugin-moderator.html',
+        server=server,
+        enabled_plugins=enabled_plugins,
+        roles=roles,
+        clear=clear,
+        banned_words=banned_words or '',
+        slowmode=slowmode,
+        mute=mute
+    )
+
+@app.route('/dashboard/<int:server_id>/update_moderator', methods=['POST'])
+@require_auth
+@require_bot_admin
+@server_check
+def update_moderator(server_id):
+    servers = session['guilds']
+    server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
+
+    roles = request.form.getlist('roles[]')
+    banned_words = request.form.get('banned_words')
+    db.delete('Moderator.{}:roles'.format(server_id))
+    for role in roles:
+        if role!="":
+            db.sadd('Moderator.{}:roles'.format(server_id), role)
+
+    db.delete('Moderator.{}:clear'.format(server_id))
+    db.delete('Moderator.{}:slowmode'.format(server_id))
+    db.delete('Moderator.{}:mute'.format(server_id))
+    db.set('Moderator.{}:banned_words'.format(server_id), banned_words)
+
+    clear = request.form.get('clear')
+    slowmode = request.form.get('slowmode')
+    mute = request.form.get('mute')
+
+    if clear:
+        db.set('Moderator.{}:clear'.format(server_id), '1')
+    if slowmode:
+        db.set('Moderator.{}:slowmode'.format(server_id), '1')
+    if mute:
+        db.set('Moderator.{}:mute'.format(server_id), '1')
+
+    flash('Configuration updated ;)!', 'success')
+
+    return redirect(url_for('plugin_moderator', server_id=server_id))
 
 if __name__=='__main__':
     app.debug = True
