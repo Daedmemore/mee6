@@ -24,13 +24,17 @@ class Storage():
         key = self.namespace + key
         return await self.redis.smembers(key)
 
+    async def srem(self, key, value):
+        key = self.namespace + key
+        return await self.redis.srem(key, value)
+
     async def sadd(self, key, member, *members):
         key = self.namespace + key
         return await self.redis.sadd(key, member, *members)
 
     async def delete(self, key, *keys):
         key = self.namespace + key
-        return await self.redis.dete(key, *keys)
+        return await self.redis.delete(key, *keys)
 
     async def sort(self, key, *get_patterns, by=None, offset=None, count=None,
                    asc=None, alpha=False, store=None):
