@@ -13,6 +13,7 @@ from plugins.animu import AnimuAndMango
 from plugins.logs import Logs
 from plugins.git import Git
 from plugins.streamers import Streamers
+from plugins.moderator import Moderator
 #from plugins.reddit import Reddit
 
 # Global plugins
@@ -106,9 +107,10 @@ class Mee6(discord.Client):
 
     async def send_message(self, *args, **kwargs):
         counter = 0
+        msg = None
         while counter!=3:
             try:
-                await super().send_message(*args, **kwargs)
+                msg = await super().send_message(*args, **kwargs)
                 counter=2
             except discord.errors.HTTPException as e:
                 if e.response.status==502:
@@ -119,6 +121,7 @@ class Mee6(discord.Client):
                     ))
                     counter=2
             counter+=1
+        return msg
 
     async def on_message(self, message):
         if message.channel.is_private:
