@@ -2,6 +2,9 @@ from plugin import Plugin
 import asyncio
 import logging
 import discord
+import aiohttp
+import json
+import os
 
 logs = logging.getLogger('discord')
 
@@ -9,7 +12,25 @@ class Stats(Plugin):
 
     is_global = True
 
+    async def carbon_stats(self):
+        carbon_key = os.getenv('CARBONITEX_KEY')
+        if not carbon_key:
+            return
+
+        url = 'https://www.carbonitex.net/discord/data/botdata.php?id={}'.format(
+            self.mee6.user.id
+        )
+        with aiohttp.ClientSession() as session:
+            payload = {
+                'key': carbon_key,
+                'servercount': len(self.mee6.servers)
+            }
+            headers = {'content-type': 'application/json'}
+            async with session.post(url, headers=headers,
+                                    data=json.dumps(payload)) as resp:
+
     async def on_server_join(self, server):
+        await self.carbon_stats()
         for member in server.members:
             await self.db.redis.sadd('mee6:stats:users', member.id)
 
@@ -22,6 +43,7 @@ class Stats(Plugin):
 
     async def on_ready(self):
         """Initialize stats"""
+        await self.carbon_stats()
 
         # Total members
         members = set(self.mee6.get_all_members())

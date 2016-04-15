@@ -5,14 +5,17 @@ REDIS_URL=redis://xxxxxx/y
 OAUTH2_CLIENT_ID=
 OAUTH2_CLIENT_SECRET=
 OAUTH2_REDIRECT_URI=http://xxx/confirm_login
-MEE6_TOKEN
+MEE6_TOKEN=
 
 # Flask secret key
-SECRET_KEY
+SECRET_KEY=
 
 # Virtual_host of the website
-VIRTUAL_HOST
+VIRTUAL_HOST=
 
 # My Anime List credentials
-MAL_USERNAME
-MAL_PASSWORD
+MAL_USERNAME=
+MAL_PASSWORD=
+
+# Carbonitex related
+CARBONITEX_KEY=
