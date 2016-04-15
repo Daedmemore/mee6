@@ -28,6 +28,7 @@ class Stats(Plugin):
             headers = {'content-type': 'application/json'}
             async with session.post(url, headers=headers,
                                     data=json.dumps(payload)) as resp:
+                pass
 
     async def on_server_join(self, server):
         await self.carbon_stats()
