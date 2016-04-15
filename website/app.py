@@ -42,6 +42,7 @@ app.jinja_env.globals['csrf_token'] = generate_csrf_token
 
 def token_updater(token):
     session['oauth2_token'] = token
+    get_or_update_user()
 
 def require_auth(f):
     @wraps(f)
