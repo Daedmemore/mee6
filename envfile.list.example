@@ -13,6 +13,10 @@ SECRET_KEY=
 # Virtual_host of the website
 VIRTUAL_HOST=
 
+# LETS ENCRYPT
+LETSENCRYPT_HOST=
+LETSENCRYPT_EMAIL=
+
 # My Anime List credentials
 MAL_USERNAME=
 MAL_PASSWORD=
