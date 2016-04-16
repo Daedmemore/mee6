@@ -41,6 +41,7 @@ def generate_csrf_token():
 app.jinja_env.globals['csrf_token'] = generate_csrf_token
 
 def token_updater(token):
+    session.permanent = True
     session['oauth2_token'] = token
     get_or_update_user()
 
@@ -68,6 +69,18 @@ def make_session(token=None, state=None, scope=None):
         auto_refresh_url=TOKEN_URL,
         token_updater=token_updater)
 
+@app.route("/manual_refresh", methods=["GET"])
+def manual_refresh():
+    """Refreshing an OAuth 2 token using a refresh token."""
+    token = session['oauth2_token']
+    extra = {
+        'client_id': OAUTH2_CLIENT_ID,
+        'client_secret': OAUTH2_CLIENT_SECRET
+    }
+    google = OAuth2Session(OAUTH2_CLIENT_ID, token=token)
+    session['oauth2_token'] = google.refresh_token(TOKEN_URL, **extra)
+    return jsonify(session['oauth2_token'])
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -87,8 +100,14 @@ def thanks():
 @app.route('/logout')
 def logout():
     session.pop('user')
+    session.pop('guilds')
+    session.pop('oauth2_token')
 
     return redirect(url_for('index'))
+
+@app.route('/debug_token')
+def debug_token():
+    return jsonify(session.get('oauth2_token'))
 
 @app.route('/login')
 def login():
@@ -98,7 +117,8 @@ def login():
 
     scope = 'identify guilds'.split()
     discord = make_session(scope=scope)
-    authorization_url, state = discord.authorization_url(AUTHORIZATION_BASE_URL)
+    authorization_url, state = discord.authorization_url(AUTHORIZATION_BASE_URL,
+                                                        access_type="offline")
     session['oauth2_state'] = state
     return redirect(authorization_url)
 
@@ -112,6 +132,7 @@ def confirm_login():
         TOKEN_URL,
         client_secret=OAUTH2_CLIENT_SECRET,
         authorization_response=request.url)
+    session.permanent = True
     session['oauth2_token'] = token
     get_or_update_user()
 
