@@ -1,5 +1,6 @@
 from flask import Flask, session, request, url_for, render_template, redirect, \
 jsonify, make_response, flash, abort, Response
+from flask.views import View
 import os
 from functools import wraps
 from requests_oauthlib import OAuth2Session
@@ -194,32 +195,53 @@ def require_bot_admin(f):
         return f(*args, **kwargs)
     return wrapper
 
+def my_dash(f):
+    return require_auth(require_bot_admin(server_check(f)))
+
+def plugin_method(f):
+    return my_dash(f)
+
+def plugin_page(plugin_name):
+    def decorator(f):
+        @require_auth
+        @require_bot_admin
+        @server_check
+        @wraps(f)
+        def wrapper(server_id):
+            disable = request.args.get('disable')
+            if disable:
+                db.srem('plugins:{}'.format(server_id), plugin_name)
+                return redirect(url_for('dashboard', server_id=server_id))
+            db.sadd('plugins:{}'.format(server_id), plugin_name)
+            servers = session['guilds']
+            server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
+            enabled_plugins = db.smembers('plugins:{}'.format(server_id))
+
+            return render_template(
+                f.__name__.replace('_', '-') + '.html',
+                server=server,
+                enabled_plugins=enabled_plugins,
+                **f(server_id)
+            )
+        return wrapper
+
+    return decorator
+
 @app.route('/dashboard/<int:server_id>')
-@require_auth
-@require_bot_admin
-@server_check
+@my_dash
 def dashboard(server_id):
     servers = session['guilds']
     server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
     enabled_plugins = db.smembers('plugins:{}'.format(server_id))
     return render_template('dashboard.html', server=server, enabled_plugins=enabled_plugins)
 
+"""
+    Command Plugin
+"""
+
 @app.route('/dashboard/<int:server_id>/commands')
-@require_auth
-@require_bot_admin
-@server_check
+@plugin_page('Commands')
 def plugin_commands(server_id):
-    disable = request.args.get('disable')
-    if disable:
-        db.srem('plugins:{}'.format(server_id), 'Commands')
-        return redirect(url_for('dashboard', server_id=server_id))
-
-    db.sadd('plugins:{}'.format(server_id), 'Commands')
-
-    servers = session['guilds']
-    server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
-    enabled_plugins = db.smembers('plugins:{}'.format(server_id))
-
     commands = []
     commands_names = db.smembers('Commands.{}:commands'.format(server_id))
     for cmd in commands_names:
@@ -229,14 +251,12 @@ def plugin_commands(server_id):
         }
         commands.append(command)
     commands = sorted(commands, key=lambda k: k['name'])
-
-    return render_template('plugin-commands.html',
-        server=server,
-        enabled_plugins=enabled_plugins,
-        commands=commands
-        )
+    return {
+        'commands': commands
+    }
 
 @app.route('/dashboard/<int:server_id>/commands/add', methods=['POST'])
+@plugin_method
 def add_command(server_id):
     cmd_name = request.form.get('cmd_name', '')
     cmd_message = request.form.get('cmd_message', '')
@@ -265,50 +285,29 @@ def add_command(server_id):
     return redirect(cb)
 
 @app.route('/dashboard/<int:server_id>/commands/<string:command>/delete')
-@require_auth
-@require_bot_admin
-@server_check
+@plugin_method
 def delete_command(server_id, command):
     db.srem('Commands.{}:commands'.format(server_id), command)
     db.delete('Commands.{}:command:{}'.format(server_id, command))
     flash('Command {} deleted !'.format(command), 'success')
     return redirect(url_for('plugin_commands', server_id=server_id))
 
+"""
+    Help Plugin
+"""
+
 @app.route('/dashboard/<int:server_id>/help')
-@require_auth
-@require_bot_admin
-@server_check
+@plugin_page('Help')
 def plugin_help(server_id):
-    disable = request.args.get('disable')
-    if disable:
-        db.srem('plugins:{}'.format(server_id), 'Help')
-        return redirect(url_for('dashboard', server_id=server_id))
+    return {}
 
-    db.sadd('plugins:{}'.format(server_id), 'Help')
-
-    servers = session['guilds']
-    server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
-    enabled_plugins = db.smembers('plugins:{}'.format(server_id))
-
-    return render_template('plugin-help.html',
-        server=server,
-        enabled_plugins=enabled_plugins
-        )
+"""
+    Levels Plugin
+"""
 
 @app.route('/dashboard/<int:server_id>/levels')
-@require_auth
-@require_bot_admin
-@server_check
+@plugin_page('Levels')
 def plugin_levels(server_id):
-    disable = request.args.get('disable')
-    if disable:
-        db.srem('plugins:{}'.format(server_id), 'Levels')
-        return redirect(url_for('dashboard', server_id=server_id))
-    db.sadd('plugins:{}'.format(server_id), 'Levels')
-    servers = session['guilds']
-    server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
-    enabled_plugins = db.smembers('plugins:{}'.format(server_id))
-
     initial_announcement = 'GG {player}, you just advanced to **level {level}** !'
     announcement_enabled = db.get('Levels.{}:announcement_enabled'.format(server_id))
     whisp = db.get('Levels.{}:whisp'.format(server_id))
@@ -324,22 +323,17 @@ def plugin_levels(server_id):
     banned_roles = db.smembers('Levels.{}:banned_roles'.format(server_id)) or []
 
     cooldown = db.get('Levels.{}:cooldown'.format(server_id)) or 0
-
-    return render_template('plugin-levels.html',
-        server = server,
-        enabled_plugins = enabled_plugins,
-        announcement = announcement,
-        announcement_enabled = announcement_enabled,
-        banned_members = banned_members,
-        banned_roles = banned_roles,
-        cooldown = cooldown,
-        whisp=whisp
-        )
+    return {
+        'announcement': announcement,
+        'announcement_enabled': announcement_enabled,
+        'banned_members': banned_members,
+        'banned_roles': banned_roles,
+        'cooldown': cooldown,
+        'whisp': whisp
+    }
 
 @app.route('/dashboard/<int:server_id>/levels/update', methods=['POST'])
-@require_auth
-@require_bot_admin
-@server_check
+@plugin_method
 def update_levels(server_id):
     servers = session['guilds']
     server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
@@ -443,29 +437,20 @@ def levels(server_id):
     return render_template('levels.html', is_admin=is_admin, players=players, server=server, title="{} leaderboard - Mee6 bot".format(server['name']))
 
 @app.route('/levels/reset/<int:server_id>/<int:player_id>')
-@require_auth
-@require_bot_admin
-@server_check
+@plugin_method
 def reset_player(server_id, player_id):
     db.delete('Levels.{}:player:{}:xp'.format(server_id, player_id))
     db.delete('Levels.{}:player:{}:lvl'.format(server_id, player_id))
     db.srem('Levels.{}:players'.format(server_id), player_id)
     return redirect(url_for('levels', server_id=server_id))
 
-@app.route('/dashboard/<int:server_id>/welcome')
-@require_auth
-@require_bot_admin
-@server_check
-def plugin_welcome(server_id):
-    disable = request.args.get('disable')
-    if disable:
-        db.srem('plugins:{}'.format(server_id), 'Welcome')
-        return redirect(url_for('dashboard', server_id=server_id))
-    db.sadd('plugins:{}'.format(server_id), 'Welcome')
-    servers = session['guilds']
-    server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
-    enabled_plugins = db.smembers('plugins:{}'.format(server_id))
+"""
+    Welcome Plugin
+"""
 
+@app.route('/dashboard/<int:server_id>/welcome')
+@plugin_page('Welcome')
+def plugin_welcome(server_id):
     initial_welcome = '{user}, Welcome to **{server}** ! Have a great time here :wink: !'
     welcome_message = db.get('Welcome.{}:welcome_message'.format(server_id))
     channel_name = db.get('Welcome.{}:channel_name'.format(server_id))
@@ -473,17 +458,13 @@ def plugin_welcome(server_id):
         db.set('Welcome.{}:welcome_message'.format(server_id), initial_welcome)
         welcome_message = initial_welcome
 
-    return render_template('plugin-welcome.html',
-        server=server,
-        enabled_plugins=enabled_plugins,
-        welcome_message=welcome_message,
-        channel_name=channel_name
-        )
+    return {
+        'welcome_message': welcome_message,
+        'channel_name': channel_name
+    }
 
 @app.route('/dashboard/<int:server_id>/welcome/update', methods=['POST'])
-@require_auth
-@require_bot_admin
-@server_check
+@plugin_method
 def update_welcome(server_id):
     servers = session['guilds']
     server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
@@ -500,71 +481,36 @@ def update_welcome(server_id):
 
     return redirect(url_for('plugin_welcome', server_id=server_id))
 
+"""
+    Animu and Mango Plugin
+"""
+
 @app.route('/dashboard/<int:server_id>/animu')
-@require_auth
-@require_bot_admin
-@server_check
+@plugin_page('AnimuAndMango')
 def plugin_animu(server_id):
-    disable = request.args.get('disable')
-    if disable:
-        db.srem('plugins:{}'.format(server_id), 'AnimuAndMango')
-        return redirect(url_for('dashboard', server_id=server_id))
+    return {}
 
-    db.sadd('plugins:{}'.format(server_id), 'AnimuAndMango')
-
-    servers = session['guilds']
-    server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
-    enabled_plugins = db.smembers('plugins:{}'.format(server_id))
-
-    return render_template('plugin-animu.html',
-        server=server,
-        enabled_plugins=enabled_plugins
-        )
-
-@app.route('/dashboard/<int:server_id>/logs')
-@require_auth
-@require_bot_admin
-@server_check
-def plugin_logs(server_id):
-    disable = request.args.get('disable')
-    if disable:
-        db.srem('plugins:{}'.format(server_id), 'Logs')
-        return redirect(url_for('dashboard', server_id=server_id))
-
-    db.sadd('plugins:{}'.format(server_id), 'Logs')
-
-    servers = session['guilds']
-    server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
-    enabled_plugins = db.smembers('plugins:{}'.format(server_id))
-
-    logs = db.lrange('Logs.{}:logs'.format(server_id), start=0, end=100)
-
-    return render_template('plugin-logs.html',
-            server=server,
-            enabled_plugins=enabled_plugins,
-            logs = logs
-            )
+"""
+    Git Plugin
+"""
 
 @app.route('/dashboard/<int:server_id>/git')
-@require_auth
-@require_bot_admin
-@server_check
+@plugin_page('Git')
 def plugin_git(server_id):
-    disable = request.args.get('disable')
-    if disable:
-        db.srem('plugins:{}'.format(server_id), 'Git')
-        return redirect(url_for('dashboard',server_id=server_id))
+    return {}
 
-    db.sadd('plugins:{}'.format(server_id), 'Git')
+"""
+    Logs Plugin
+"""
 
-    servers = session['guilds']
-    server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
-    enabled_plugins = db.smembers('plugins:{}'.format(server_id))
+@app.route('/dashboard/<int:server_id>/logs')
+@plugin_page('Logs')
+def plugin_logs(server_id):
+    logs = db.lrange('Logs.{}:logs'.format(server_id), start=0, end=100)
 
-    return render_template('plugin-git.html',
-                           server=server,
-                           enabled_plugins=enabled_plugins,
-                           )
+    return {
+        'logs': logs
+    }
 
 @app.route('/logs/<int:server_id>')
 def logs_homepage(server_id):
@@ -649,49 +595,28 @@ def message_logs(server_id, dt, channel):
         messages = list(map(lambda m: {**m,'date':datetime.datetime.fromtimestamp(m['timestamp']).strftime('%H:%M:%S')}, messages))
         return render_template('message-logs.html', server=server, channel=channel, messages=messages, dt=dt)
 
-@app.route('/dashboard/<int:server_id>/manage_admins')
-def manage_admins(server_id):
-    servers = session['guilds']
-    server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
-    enabled_plugins = db.smembers('plugins:{}'.format(server_id))
-    return render_template('manage-admins.html',
-                           server=server,
-                           enabled_plugins=enabled_plugins,
-                           )
+"""
+    Streamers Plugin
+"""
 
 @app.route('/dashboard/<int:server_id>/streamers')
-@require_auth
-@require_bot_admin
-@server_check
+@plugin_page('Streamers')
 def plugin_streamers(server_id):
-    disable = request.args.get('disable')
-    if disable:
-        db.srem('plugins:{}'.format(server_id), 'Streamers')
-        return redirect(url_for('dashboard',server_id=server_id))
-
-    db.sadd('plugins:{}'.format(server_id), 'Streamers')
-
-    servers = session['guilds']
-    server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
-    enabled_plugins = db.smembers('plugins:{}'.format(server_id))
     streamers = db.smembers('Streamers.{}:streamers'.format(server_id))
     announcement_channel = db.get('Streamers.{}:announcement_channel'.format(server_id))
     announcement_msg = db.get('Streamers.{}:announcement_msg'.format(server_id))
     if announcement_msg is None:
         announcement_msg = "Hey @everyone! {streamer} is now live on http://twitch.tv/{streamer} ! Go check it out :wink:!"
         db.set('Streamers.{}:announcement_msg'.format(server_id), announcement_msg)
-    return render_template('plugin-streamers.html',
-                           server=server,
-                           streamers=streamers,
-                           announcement_channel=announcement_channel,
-                           announcement_msg=announcement_msg,
-                           enabled_plugins=enabled_plugins,
-                           )
+
+    return {
+        'announcement_channel': announcement_channel,
+        'announcement_msg': announcement_msg,
+        'streamers': streamers
+    }
 
 @app.route('/dashboard/<int:server_id>/update_streamers', methods=['POST'])
-@require_auth
-@require_bot_admin
-@server_check
+@plugin_method
 def update_streamers(server_id):
     servers = session['guilds']
     server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
@@ -712,34 +637,22 @@ def update_streamers(server_id):
     flash('Configuration updated with success!', 'success')
     return redirect(url_for('plugin_streamers', server_id=server_id))
 
+"""
+    Reddit Plugin
+"""
+
 @app.route('/dashboard/<int:server_id>/reddit')
-@require_auth
-@require_bot_admin
-@server_check
+@plugin_page('Reddit')
 def plugin_reddit(server_id):
-    disable = request.args.get('disable')
-    if disable:
-        db.srem('plugins:{}'.format(server_id), 'Reddit')
-        return redirect(url_for('dashboard',server_id=server_id))
-
-    db.sadd('plugins:{}'.format(server_id), 'Reddit')
-
-    servers = session['guilds']
-    server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
-    enabled_plugins = db.smembers('plugins:{}'.format(server_id))
     subs = db.smembers('Reddit.{}:subs'.format(server_id))
     display_channel = db.get('Reddit.{}:display_channel'.format(server_id))
-    return render_template('plugin-reddit.html',
-                           server=server,
-                           subs=subs,
-                           display_channel=display_channel,
-                           enabled_plugins=enabled_plugins,
-                           )
+    return {
+        'subs': subs,
+        'display_channel': display_channel
+    }
 
 @app.route('/dashboard/<int:server_id>/update_reddit', methods=['POST'])
-@require_auth
-@require_bot_admin
-@server_check
+@plugin_method
 def update_reddit(server_id):
     servers = session['guilds']
     server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
@@ -755,43 +668,29 @@ def update_reddit(server_id):
     flash('Configuration updated with success!', 'success')
     return redirect(url_for('plugin_reddit', server_id=server_id))
 
+"""
+    Moderator Plugin
+"""
+
 @app.route('/dashboard/<int:server_id>/moderator')
-@require_auth
-@require_bot_admin
-@server_check
+@plugin_page('Moderator')
 def plugin_moderator(server_id):
-    disable = request.args.get('disable')
-    if disable:
-        db.srem('plugins:{}'.format(server_id), 'Moderator')
-        return redirect(url_for('dashboard', server_id=server_id))
-
-    db.sadd('plugins:{}'.format(server_id), 'Moderator')
-
-    servers = session['guilds']
-    server = list(filter(lambda g:g['id']==str(server_id), servers))[0]
-    enabled_plugins = db.smembers('plugins:{}'.format(server_id))
-
     roles = db.smembers('Moderator.{}:roles'.format(server_id))
     clear = db.get('Moderator.{}:clear'.format(server_id))
     banned_words = db.get('Moderator.{}:banned_words'.format(server_id))
     slowmode = db.get('Moderator.{}:slowmode'.format(server_id))
     mute = db.get('Moderator.{}:mute'.format(server_id))
 
-    return render_template(
-        'plugin-moderator.html',
-        server=server,
-        enabled_plugins=enabled_plugins,
-        roles=roles,
-        clear=clear,
-        banned_words=banned_words or '',
-        slowmode=slowmode,
-        mute=mute
-    )
+    return {
+        'roles': roles,
+        'clear': clear,
+        'banned_words': banned_words or '',
+        'slowmode': slowmode,
+        'mute': mute
+    }
 
 @app.route('/dashboard/<int:server_id>/update_moderator', methods=['POST'])
-@require_auth
-@require_bot_admin
-@server_check
+@plugin_method
 def update_moderator(server_id):
     servers = session['guilds']
     server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
