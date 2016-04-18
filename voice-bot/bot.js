@@ -61,7 +61,7 @@ let queueUp = (video, message) => {
 
 let getStreamFromYT = (video) => {
 	var link = "http://youtube.com/?v="+video.id.videoId;
-	return ytdl(link, {filter: format => format.container == 'mp4'});
+	return ytdl(link, {filter: format => format.container == 'mp4', quality: 'lowest'});
 };
 
 let playOrNext = (message, guild) => {
