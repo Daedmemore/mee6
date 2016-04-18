@@ -201,13 +201,18 @@ def my_dash(f):
 def plugin_method(f):
     return my_dash(f)
 
-def plugin_page(plugin_name):
+def plugin_page(plugin_name, early_backers=False):
     def decorator(f):
         @require_auth
         @require_bot_admin
         @server_check
         @wraps(f)
         def wrapper(server_id):
+            if early_backers:
+                user = session.get('user')
+                is_early_backer = user['id'] in db.smembers('early_backers')
+                if not is_early_backer:
+                    return redirect(url_for('donate'))
             disable = request.args.get('disable')
             if disable:
                 db.srem('plugins:{}'.format(server_id), plugin_name)
@@ -343,7 +348,6 @@ def update_levels(server_id):
     announcement = request.form.get('announcement')
     enable = request.form.get('enable')
     whisp = request.form.get('whisp')
-    print(whisp)
     cooldown = request.form.get('cooldown')
 
     try:
@@ -721,6 +725,62 @@ def update_moderator(server_id):
     flash('Configuration updated ;)!', 'success')
 
     return redirect(url_for('plugin_moderator', server_id=server_id))
+
+"""
+    Music Plugin
+"""
+
+@app.route('/dashboard/<int:server_id>/music')
+@plugin_page('Music', early_backers=True)
+def plugin_music(server_id):
+    allowed_roles = db.smembers('Music.{}:allowed_roles'.format(server_id)) or []
+    return {
+        'allowed_roles': allowed_roles
+    }
+
+@app.route('/dashboard/<int:server_id>/update_music', methods=['POST'])
+@plugin_method
+def update_music(server_id):
+    allowed_roles = request.form.getlist('allowed_roles[]')
+    db.delete('Music.{}:allowed_roles'.format(server_id))
+    for role in allowed_roles:
+        db.sadd('Music.{}:allowed_roles'.format(server_id), role)
+    flash('Configuration updated ;)!', 'success')
+
+    return redirect(url_for('plugin_music', server_id=server_id))
+
+@app.route('/request_playlist/<int:server_id>')
+def request_playlist(server_id):
+    if 'Music' not in db.smembers('plugins:{}'.format(server_id)):
+        return redirect(url_for('index'))
+
+    playlist = db.lrange('Music.{}:request_queue'.format(server_id), 0, -1)
+    playlist = list(map(lambda v: json.loads(v), playlist))
+
+    is_admin = False
+    if session.get('user'):
+        user_servers = get_user_servers(session['user'], session['guilds'])
+        is_admin = str(server_id) in list(map(lambda s:s['id'], user_servers))
+
+    server = {
+        'id': server_id,
+        'icon': db.get('server:{}:icon'.format(server_id)),
+        'name': db.get('server:{}:name'.format(server_id))
+    }
+
+    return render_template('request-playlist.html', playlist=playlist,
+                          server=server, is_admin=is_admin)
+
+@app.route('/delete_request/<int:server_id>/<int:pos>')
+@plugin_method
+def delete_request(server_id, pos):
+    playlist = db.lrange('Music.{}:request_queue'.format(server_id), 0, -1)
+    if pos < len(playlist):
+        del playlist[pos]
+        db.delete('Music.{}:request_queue'.format(server_id))
+        for vid in playlist:
+            db.rpush('Music.{}:request_queue'.format(server_id), vid)
+    return redirect(url_for('request_playlist', server_id=server_id))
 
 if __name__=='__main__':
     app.debug = True

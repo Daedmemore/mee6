@@ -1,0 +1,17 @@
+{
+  "name": "mee6-voice",
+  "version": "0.0.1",
+  "description": "Voice part of Mee6",
+  "main": "bot.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Cookie",
+  "license": "ISC",
+  "dependencies": {
+    "discordie": "^0.5.4",
+    "redis": "^2.6.0-1",
+    "request": "^2.72.0",
+    "ytdl-core": "^0.7.13"
+  }
+}

@@ -1,4 +1,4 @@
-{% macro view(name, view='', pretty_name='', no_links=False, description='', soon=False, server=None, enabled_plugins=[]) %}
+{% macro view(name, view='', pretty_name='', early_backers=False, no_links=False, description='', soon=False, server=None, enabled_plugins=[]) %}
 {% if pretty_name=='' %}
     {% set pretty_name=name %}
 {% endif %}
@@ -18,6 +18,9 @@
       });
   </script>
   {% endif %}
+{% if early_backers==True %}
+<span class="badge" style="margin-right:3px; background-color:#43ac6a;">Early Backers</span>
+{% endif %}
 {% else %}
 <div class="list-group-item">
 {% if no_links==False %}

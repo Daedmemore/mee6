@@ -1,0 +1,59 @@
+{% extends 'dash_base.html' %}
+{% block dash_content %}
+    <div class="container">
+        <div class="row">
+            {% include 'sidebar.html' %}
+            {% set csrf =  csrf_token() %}
+            <div class="col-md-8">
+                <h3>Music <a href="?disable=1" class="btn btn-warning btn-xs">Disable</a></h3>
+                {% include 'flash.html' %}
+                <form id="music" method="POST" action="{{url_for('update_music', server_id=server['id'])}}">
+                    <div class="form-group">
+                      <input name=_csrf_token type=hidden value="{{ csrf }}">
+                      <div class="well well-sm">
+			      By default, only the <strong>server managers</strong> can use the Music plugin.<br />You can allow some roles to use it.<br />To allow every member, just add the <strong>@everyone</strong> role.
+		      </div>
+
+                      <div class="allowed_roles_wrap">
+
+                            <label class="control-label" for="allowed-roles">Allowed Roles <button class="btn btn-primary btn-xs add_allowed_role">Add</button></label>
+                            {%for role in allowed_roles %}
+                            <div class="input-group">
+                                <input type="text" class="form-control" value="{{role}}" placeholder="Role Name" name="allowed_roles[]" type="text" id="allowed-roles">
+                                <span class="input-group-btn">
+                                  <button class="btn btn-default remove_field">Remove</button>
+                                </span>
+                             </div>
+                             {% endfor %}
+                      </div>
+                      <script>
+                      $(document).ready(function() {
+                            var max_fields      = 100; //maximum input boxes allowed
+                            var wrapper         = $(".allowed_roles_wrap"); //Fields wrapper
+                            var add_button      = $(".add_allowed_role"); //Add button ID
+
+                            var x = 1; //initlal text box count
+                            $(add_button).click(function(e){ //on add input button click
+                                e.preventDefault();
+                                if(x < max_fields){ //max input box allowed
+                                    x++; //text box increment
+                                    $(wrapper).append('<div class="input-group"><input type="text" class="form-control" placeholder="Role Name" name="allowed_roles[]" type="text"><span class="input-group-btn"><button class="btn btn-default remove_field">Remove</button></span></div>'); //add input box
+                                }
+                            });
+
+                            $(wrapper).on("click",".remove_field", function(e){ //user click on remove text
+
+                                e.preventDefault(); $(this).parent('').parent('').remove(); x--;
+                            })
+                        });
+                      </script>
+                      <br />
+                      <button type="submit" class="btn btn-primary">Update</button>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+{% endblock %}
