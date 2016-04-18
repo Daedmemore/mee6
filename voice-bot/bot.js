@@ -121,6 +121,8 @@ let stop = (message) => {
 };
 
 client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
+	if (!e.message.guild)
+		return
 	utils.isMusicEnabled (e.message.guild, (musicEnabled) => {
 		if (!musicEnabled)
 			return;
