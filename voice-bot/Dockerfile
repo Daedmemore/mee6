@@ -4,5 +4,6 @@ RUN ["echo", "\"deb-src http://www.deb-multimedia.org wheezy main non-free\" >> 
 RUN ["apt-get", "update"]
 # Run ffmpeg build script
 RUN ["apt-get", "install", "-y", "ffmpeg"]
+COPY . /
 RUN npm install
 CMD [ "npm", "start" ]
