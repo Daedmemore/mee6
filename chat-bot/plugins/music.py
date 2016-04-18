@@ -3,6 +3,8 @@ from plugin import Plugin
 
 class Music(Plugin):
 
+    fancy_name = "Music"
+
     async def get_commands(self, server):
         commands = [
             {
