@@ -23,3 +23,6 @@ MAL_PASSWORD=
 
 # Carbonitex related
 CARBONITEX_KEY=
+
+# For youtube api
+GOOGLE_API_KEY=
