@@ -1,5 +1,6 @@
 *.pyc
 bin/
 lib/
+*/node_modules/
 lib64
 pyvenv.cfg
