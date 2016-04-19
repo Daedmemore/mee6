@@ -1,6 +1,9 @@
 # REDIS URI
 REDIS_URL=redis://xxxxxx/y
 
+#MONGO URI
+MONGO_URL=mongodb://xxxxxx/y
+
 # DISCORD API STUFF
 OAUTH2_CLIENT_ID=
 OAUTH2_CLIENT_SECRET=
