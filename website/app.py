@@ -68,6 +68,7 @@ def make_session(token=None, state=None, scope=None):
             'client_secret': OAUTH2_CLIENT_SECRET,
         },
         auto_refresh_url=TOKEN_URL,
+        access_type="offline", 
         token_updater=token_updater)
 
 @app.route("/manual_refresh", methods=["GET"])
