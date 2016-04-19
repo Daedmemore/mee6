@@ -24,6 +24,7 @@ class Logs(Plugin):
             await self.mee6.send_message(message.channel,
                     "Go check the logs here: http://mee6.xyz/logs/{} :wink:!".format(message.server.id))
 
+
         now = datetime.utcnow()
         # Formating the msg
         author = message.author
@@ -49,7 +50,10 @@ class Logs(Plugin):
         # Adding the channel to the list of today logs
         await storage.sadd('message_logs:{}'.format(date), channel)
         # Adding the message to the logs
-        await storage.lpush('message_logs:{}:{}'.format(date, channel), json.dumps(msg))
+        db = self.mee6.db.mongo.logs
+        collection = db['{}:{}:{}'.format(message.server.id, date, channel)]
+        await collection.insert(msg)
+        #await storage.lpush('message_logs:{}:{}'.format(date, channel), json.dumps(msg))
 
     async def on_member_join(self, member):
         storage = await self.get_storage(member.server)

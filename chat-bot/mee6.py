@@ -37,7 +37,8 @@ class Mee6(discord.Client):
     def __init__(self, *args, **kwargs):
         discord.Client.__init__(self, *args, **kwargs)
         self.redis_url = kwargs.get('redis_url')
-        self.db = Db(self.redis_url, self.loop)
+        self.mongo_url = kwargs.get('mongo_url')
+        self.db = Db(self.redis_url, self.mongo_url, self.loop)
         self.plugin_manager = PluginManager(self)
         self.plugin_manager.load_all()
         self.last_messages = []

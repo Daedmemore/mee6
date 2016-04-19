@@ -2,6 +2,7 @@ from flask import Flask, session, request, url_for, render_template, redirect, \
 jsonify, make_response, flash, abort, Response
 from flask.views import View
 import os
+import pymongo
 from functools import wraps
 from requests_oauthlib import OAuth2Session
 import redis
@@ -22,9 +23,11 @@ API_BASE_URL = os.environ.get('API_BASE_URL', 'https://discordapp.com/api')
 AUTHORIZATION_BASE_URL = API_BASE_URL + '/oauth2/authorize'
 DOMAIN = os.environ.get('VIRTUAL_HOST', 'localhost:5000')
 TOKEN_URL = API_BASE_URL + '/oauth2/token'
+MONGO_URL = os.environ.get('MONGO_URL')
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
 db = redis.Redis.from_url(REDIS_URL, decode_responses=True)
+mongo = pymongo.MongoClient(MONGO_URL)
 
 # CSRF
 @app.before_request
@@ -533,7 +536,9 @@ def logs_homepage(server_id):
     payload = []
     dates = list(db.smembers('Logs.{}:message_logs'.format(server_id)))
     dates = map(lambda d:d.split('-'), dates)
+    dates = map(lambda d:(int(d[0]), int(d[1]), int(d[2])), dates)
     dates = sorted(dates, reverse=True)
+    dates = map(lambda d:(str(d[0]), str(d[1]), str(d[2])), dates)
     dates = list(map(lambda d:"-".join(d), dates))
     for date in dates:
         info = {
@@ -566,11 +571,11 @@ def message_logs(server_id, dt, channel):
         'icon': db.get('server:{}:icon'.format(server_id)),
         'name': db.get('server:{}:name'.format(server_id))
     }
-
-    messages = db.lrange('Logs.{}:message_logs:{}:{}'.format(server_id, dt, channel), start=0, end=-1)
-    if asc=="1":
-        messages = reversed(messages)
-    messages = list(map(json.loads, messages))
+    mongo_db = mongo.logs
+    collection = mongo_db['{}:{}:{}'.format(server['id'], dt, channel)]
+    messages = [message for message in collection.find({}, {'_id': 0})]
+    if asc!="1":
+        messages = list(reversed(messages))
     def render_text(msgs):
         messages = []
         for msg in msgs:
