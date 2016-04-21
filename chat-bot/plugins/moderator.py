@@ -264,14 +264,18 @@ class Moderator(Plugin):
         else:
             banned_words = []
         for word in banned_words:
+            if word == "":
+                continue
             if word.lower() in message.content.lower():
                 await self.mee6.delete_message(message)
-                await self.mee6.send_message(
+                msg = await self.mee6.send_message(
                     message.channel,
                     "{}, **LANGUAGE!!!** :rage:".format(
                         message.author.mention
                     )
                 )
+                await asyncio.sleep(3)
+                await self.mee6.delete_message(msg)
                 return
 
     async def on_message(self, message):
