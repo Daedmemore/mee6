@@ -64,6 +64,34 @@ let getStreamFromYT = (video) => {
   return ytdl(link, {filter: format => format.container == 'mp4', quality: 'lowest'});
 };
 
+let getVideoInfo = (video) => {
+  var link = "http://youtube.com/?v="+video.id.videoId;
+}
+
+function playRemote(video, guild, info) {
+  var remote = "http://youtube.com/?v="+video.id.videoId;
+  function onMediaInfo(err, mediaInfo) {
+    if (err) return console.log("ytdl error:", err);
+    // sort by bitrate, high to low; prefer webm over anything else
+    var formats = mediaInfo.formats.filter(f => f.container === "webm")
+    .sort((a, b) => b.audioBitrate - a.audioBitrate);
+
+    // get first audio-only format or fallback to non-dash video
+    var bestaudio = formats.find(f => f.audioBitrate > 0 && !f.bitrate) ||
+                    formats.find(f => f.audioBitrate > 0);
+    if (!bestaudio) return console.log("[playRemote] No valid formats");
+    if (!info) return console.log("[play] Voice not connected");
+    var encoder = info.voiceConnection.createExternalEncoder({
+      type: "ffmpeg", source: bestaudio.url
+    });
+    encoder.once("end", () => playOrNext(null, guild));
+    encoder.play();
+  }
+  try {
+    ytdl.getInfo(remote, onMediaInfo);
+  } catch (e) { console.log("ytdl threw:", e); }
+}
+
 let playOrNext = (message, guild) => {
   if (!message)
     var guild = guild;
@@ -88,25 +116,7 @@ let playOrNext = (message, guild) => {
         return;
       }
       video = JSON.parse(video);
-      var encoderStream = voiceConnection.voiceConnection.getEncoderStream();
-      if (encoderStream){
-        encoderStream.unpipeAll();
-      }
-      var youTubeStream = getStreamFromYT(video);
-      var encoder = voiceConnection.voiceConnection.createExternalEncoder({
-        type: "ffmpeg",
-        source: "-",
-        format: "opus",
-        debug: true
-      });
-      if (!encoder) {
-        if (message)
-          message.channel.sendMessage("Voice connection no longer available...");
-        return;
-      }
-      encoder.once("end", () => playOrNext(null, guild));
-      youTubeStream.pipe(encoder.stdin);
-      var audioStream = encoder.play();
+      playRemote(video, guild, voiceConnection);
       redisClient.set("Music."+guild.id+":now_playing", JSON.stringify(video));
     });
   });
@@ -215,17 +225,3 @@ client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
   });
 });
 
-process.on('uncaughtException', function(err) {
-    // Handle ECONNRESETs caused by `next` or `destroy`
-    // What meew0 said:
-    // https://github.com/meew0/Lethe/blob/master/lethe.js#L564-L583
-    if (err.code == 'ECONNRESET') {
-      console.log(err.stack);
-    } 
-    else {
-    // Normal error handling
-    console.log(err);
-    console.log(err.stack);
-    process.exit(0);
-    }
-});

@@ -1,5 +1,8 @@
 FROM node:wheezy
 
+ENV DEBIAN_FRONTEND noninteractive
+
+# Update and install minimal.
 RUN \
   apt-get update \
             --quiet \
@@ -21,10 +24,15 @@ RUN \
         python-minimal \
         texi2html \
         zlib1g-dev \
+	openssl \
+	libssl-dev \
+	libmp3lame-dev \
 
 # Clean up packages.
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# Prepare for cloning/building.
 
 ## Yasm
 RUN git clone git://github.com/yasm/yasm.git \
@@ -36,16 +44,6 @@ RUN git clone git://github.com/yasm/yasm.git \
     && make distclean \
     && cd /tmp \
     && rm -rf /tmp/yasm
-
-## x264
-RUN git clone git://git.videolan.org/x264.git \
-    && cd x264 \
-    && ./configure --enable-static --disable-opencl \
-    && make -j`getconf _NPROCESSORS_ONLN` \
-    && make install \
-    && make distclean \
-    && cd /tmp \
-    && rm -rf /tmp/x264
 
 ## libopus
 RUN git clone git://git.opus-codec.org/opus.git \
@@ -68,20 +66,33 @@ RUN git clone https://chromium.googlesource.com/webm/libvpx \
     && cd /tmp \
     && rm -rf /tmp/libvpx
 
+## AAC
+RUN     wget -O fdk-aac.tar.gz https://github.com/mstorsjo/fdk-aac/tarball/master \
+	&& tar xzvf fdk-aac.tar.gz \
+	&& cd mstorsjo-fdk-aac* \
+	&& autoreconf -fiv \
+	&& ./configure --disable-shared \
+	&& make \
+	&& make install
+
 ## ffmpeg
 RUN git clone git://source.ffmpeg.org/ffmpeg.git \
     && cd ffmpeg \
     && ./configure \
         --disable-debug \
         --enable-small \
+	--enable-nonfree \
         --extra-libs=-ldl \
-        --enable-gpl \
         --enable-libass \
         --enable-libopus \
+ 	--enable-libfdk-aac \
+  	--enable-libfreetype \
+  	--enable-libmp3lame \
         --enable-libtheora \
         --enable-libvorbis \
         --enable-libvpx \
-        --enable-libx264 \
+	--enable-openssl \
+
     && make -j`getconf _NPROCESSORS_ONLN` \
     && make install \
     && make distclean \
