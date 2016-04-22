@@ -4,4 +4,8 @@
     <h4 class="list-group-item-heading">Change server</h4>
     <p class="list-group-item-text">Go back to your server list.</p>
   </a>
+  <a href="{{url_for('notification', server_id=server.id)}}" class="list-group-item">
+	  <h4 class="list-group-item-heading"> {% if notification == True %}Disable {% else %}Enable {%endif%}Update Notification</h4>
+	  <p class="list-group-item-text">{% if notification == True %}You can turn that back on later ;) {% else %} Because you wanna know what's going on in Mee6 world :p {%endif%}</p>
+  </a>
 </div>

@@ -240,8 +240,29 @@ def plugin_page(plugin_name, early_backers=False):
 def dashboard(server_id):
     servers = session['guilds']
     server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
+    user = session['user']
     enabled_plugins = db.smembers('plugins:{}'.format(server_id))
-    return render_template('dashboard.html', server=server, enabled_plugins=enabled_plugins)
+    ignored = db.get('user:{}:ignored'.format(user['id']))
+    notification = False
+    if not ignored:
+        notification = True
+    return render_template('dashboard.html',
+                           server=server,
+                           enabled_plugins=enabled_plugins,
+                           notification=notification
+                          )
+
+@app.route('/dashboard/notification/<int:server_id>')
+@my_dash
+def notification(server_id):
+    user = session['user']
+    ignored = db.get('user:{}:ignored'.format(user['id']))
+    if ignored:
+        db.delete('user:{}:ignored'.format(user['id']))
+    else:
+        db.set('user:{}:ignored'.format(user['id']), '1')
+
+    return redirect(url_for('dashboard', server_id=server_id))
 
 """
     Command Plugin
