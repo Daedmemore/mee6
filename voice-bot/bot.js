@@ -5,10 +5,13 @@ var redisURL = process.env.REDIS_URL,
     redisClient = redis.createClient(redisURL),
     ytdl = require('ytdl-core'),
     apiKey = process.env.GOOGLE_API_KEY,
-    request = require('request');
+    request = require('request'),
+    shards = process.env.SHARDS;
 
 var Discordie = require("discordie");
 var Events = Discordie.Events
+
+shards = shards.split("");
 
 var client = new Discordie();
 client.connect({token: process.env.MEE6_TOKEN});
@@ -36,6 +39,15 @@ let isAllowed = (member, cb) => {
     }
     cb(false);
   });
+};
+
+// The b1nzy way!
+let shardContains = (guildId) => {
+  if (shards.indexOf(guildId[guildId.length-5]) > -1) {
+    return true;
+  }
+
+  return false;
 };
 
 let queueUp = (video, message) => {
@@ -132,7 +144,20 @@ let stop = (message) => {
 
 client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
   if (!e.message.guild)
-    return
+    return;
+
+  if (e.message.content == "!musicstats") {
+    var voiceCo = client.VoiceConnections.filter(vc => vc.voiceConnection.guildId != null)
+      .filter(vc => shardContains(vc.voiceConnection.guildId));
+    var guilds = client.Guilds.filter(g => shardContains(g.id));
+    e.message.channel.sendMessage(":headphones: **Shard "+shards.join(',')+"** "+
+        "Currently connected to **"+guilds.length+" guild"+(guilds.length > 1 ? "s" : "")+
+          "** & **"+voiceCo.length+" voice channel"+ (voiceCo.length > 1 ? "s" : "") +"** :ok_hand:.");
+  }
+
+  if (shardContains(e.message.guild.id) == false)
+      return;
+ 
   utils.isMusicEnabled (e.message.guild, (musicEnabled) => {
     if (!musicEnabled)
       return;
@@ -217,9 +242,6 @@ client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
           });
       }
 
-      if (e.message.content == "!musicstats") {
-        e.message.channel.sendMessage(":headphones: Currently connected to **"+client.VoiceConnections.length+"** voice channel"+ (client.VoiceConnections.length > 1 ? "" : "s") +" :ok_hand:.");
-      }
     });
 
   });
