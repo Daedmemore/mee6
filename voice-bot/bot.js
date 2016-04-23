@@ -6,7 +6,9 @@ var redisURL = process.env.REDIS_URL,
     ytdl = require('ytdl-core'),
     apiKey = process.env.GOOGLE_API_KEY,
     request = require('request'),
-    shards = process.env.SHARDS;
+    shards = process.env.SHARDS,
+    threads = process.env.THREADS || 1,
+    compression_level = process.env.COMPRESSION_LEVEL || 7;
 
 var Discordie = require("discordie");
 var Events = Discordie.Events
@@ -94,7 +96,9 @@ function playRemote(video, guild, info) {
     if (!bestaudio) return console.log("[playRemote] No valid formats");
     if (!info) return console.log("[play] Voice not connected");
     var encoder = info.voiceConnection.createExternalEncoder({
-      type: "ffmpeg", source: bestaudio.url
+      type: "ffmpeg", source: bestaudio.url,
+      inputArgs: ["-threads", threads],
+      outputArgs: ["-compression_level", compression_level]
     });
     encoder.once("end", () => playOrNext(null, guild));
     encoder.play();
@@ -219,6 +223,10 @@ client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
 
       if (e.message.content == "!stop") {
         stop(e.message);
+      }
+      
+      if (e.message.content == "!leave") {
+        leave(e.message);
       }
 
       if (e.message.content == "!playlist") {
