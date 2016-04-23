@@ -1,10 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	      })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-76785175-1', 'auto');
+    ga('send', 'pageview');
+
+    </script>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Mee6 is a powerful, easy to use discord bot !">
+    <meta name="description" content="{{ description or 'Mee6 is a powerful, easy to use discord bot !'}}">
     <meta name="author" content="Cookie">
 
     <title>{{ title or 'Mee6 : the Discord bot !'}}</title>
@@ -20,7 +30,7 @@
 
   <body class="home-body">
 
-    <nav class="navbar navbar-inverse home-navbar navbar-fixed-top animated bounceInDown">
+    <nav style="background:none;" class="navbar navbar-inverse home-navbar navbar-fixed-top animated bounceInDown">
       <div class="container">
         <div class="navbar-header">
           <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
@@ -29,7 +39,9 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="{{url_for('index')}}">Mee6 <span class="badge beta-badge">BETA</span></a>
+          <a class="navbar-brand" href="{{url_for('index')}}">
+		  <span><img src="{{url_for('static', filename='img/meeseeks.png')}}" style="width:30px;border:1px solid #006687;box-shadow: 0px 0px 3px #006687;" class="img-circle"></span>
+		  Mee6 <span class="badge beta-badge">BETA</span></a>
         </div>
         {% include 'navbar-menu.html' %}
       </div>

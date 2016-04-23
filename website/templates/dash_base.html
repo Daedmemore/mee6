@@ -4,11 +4,11 @@
     <div class="container">
         <div class="row vertical-align">
             <div class="col-md-12">
-                <h2>
-                    <img style="width:100px;" src="{{url_for('static', filename='img/meeseeks.png')}}">
                     {% if server['icon'] %}
-                    <img style="width:100px;" class="img-circle" src="https://discordapp.com/api/guilds/{{server['id']}}/icons/{{server['icon']}}.jpg">
+                    <img style="width:100px; margin:5px;" class="img-circle" src="https://discordapp.com/api/guilds/{{server['id']}}/icons/{{server['icon']}}.jpg">
                     {% endif %}
+                <h2>
+		    <small style="color:#74C4D4;">Dashboard</small><br />
                     {{server['name']}}</h2>
             </div>
         </div>
