@@ -480,7 +480,7 @@ def reset_player(server_id, player_id):
 @app.route('/dashboard/<int:server_id>/welcome')
 @plugin_page('Welcome')
 def plugin_welcome(server_id):
-    initial_welcome = '{user}, Welcome to **{server}** ! Have a great time here :wink: !'
+    initial_welcome = '{user}, Welcome to **{server}**! Have a great time here :wink: !'
     welcome_message = db.get('Welcome.{}:welcome_message'.format(server_id))
     channel_name = db.get('Welcome.{}:channel_name'.format(server_id))
     if welcome_message is None:
