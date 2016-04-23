@@ -211,8 +211,8 @@ def plugin_page(plugin_name, early_backers=False):
         @server_check
         @wraps(f)
         def wrapper(server_id):
+            user = session.get('user')
             if early_backers:
-                user = session.get('user')
                 is_early_backer = user['id'] in db.smembers('early_backers')
                 if not is_early_backer:
                     return redirect(url_for('donate'))
@@ -225,10 +225,13 @@ def plugin_page(plugin_name, early_backers=False):
             server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
             enabled_plugins = db.smembers('plugins:{}'.format(server_id))
 
+            ignored = db.get('user:{}:ignored'.format(user['id']))
+            notification = not ignored
             return render_template(
                 f.__name__.replace('_', '-') + '.html',
                 server=server,
                 enabled_plugins=enabled_plugins,
+                notification=notification,
                 **f(server_id)
             )
         return wrapper
@@ -243,9 +246,7 @@ def dashboard(server_id):
     user = session['user']
     enabled_plugins = db.smembers('plugins:{}'.format(server_id))
     ignored = db.get('user:{}:ignored'.format(user['id']))
-    notification = False
-    if not ignored:
-        notification = True
+    notification = not ignored
     return render_template('dashboard.html',
                            server=server,
                            enabled_plugins=enabled_plugins,
