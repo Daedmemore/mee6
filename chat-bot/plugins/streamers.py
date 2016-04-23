@@ -44,7 +44,10 @@ class Streamers(Plugin):
             with aiohttp.ClientSession() as session:
                 async with session.get(url.format(",".join(streamers[i*100:(i+1)*100]))) as resp:
                     result = await resp.json()
-                    live_streamers_list = map(lambda s:(s['channel']['name'], s), result['streams'])
+                    live_streamers_list = map(lambda s:(s['channel']['name'], s),
+                                                   result['streams'])
+                    live_streamers_str = ",".join(map(lambda s:s[0], live_streamers_list))
+                    logs.debug("Getting streams info of: "+live_streamers_str)
                     _live_streamers = {name: info for name, info in live_streamers_list}
                     live_streamers = {**live_streamers, **_live_streamers}
         return live_streamers
@@ -82,15 +85,14 @@ class Streamers(Plugin):
                         name=a_c
                 ) or server
 
-                try:
-                    await self.mee6.send_message(announcement_channel, announcement_msg)
-                    # Mark as announcement
-                    await storage.sadd('streamer:{}'.format(
-                        live_streamer['channel']['name']),
-                        live_streamer['_id']
-                    )
-                except:
-                    pass
+                msg = await self.mee6.send_message(announcement_channel, announcement_msg)
+                # Mark as announcement
+                if not msg:
+                    continue
+                await storage.sadd('streamer:{}'.format(
+                    live_streamer['channel']['name']),
+                    live_streamer['_id']
+                )
 
 
     async def on_ready(self):
@@ -104,6 +106,7 @@ class Streamers(Plugin):
                 for server in self.mee6.servers:
                     await self.announce_live(server, live_streamers)
                 # Wait till next round
-            except Exception:
+            except Exception as e:
                 logs.info('An error occured in Streamer plugin cron job. Retrying...')
+                logs.info(e)
             await asyncio.sleep(10)
