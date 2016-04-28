@@ -6,21 +6,21 @@ var redisURL = process.env.REDIS_URL,
     ytdl = require('ytdl-core'),
     apiKey = process.env.GOOGLE_API_KEY,
     request = require('request'),
-    shards = process.env.SHARDS,
+    shard = process.env.SHARD,
     threads = process.env.THREADS || 1,
     compression_level = process.env.COMPRESSION_LEVEL || 7;
 
 var Discordie = require("discordie");
 var Events = Discordie.Events
 
-shards = shards.split("");
-
-var client = new Discordie();
+shard = parseInt(shard);
+var client = new Discordie({shardId: shard, shardCount:10});
+client.Messages.setMessageLimit(50);
 client.connect({token: process.env.MEE6_TOKEN});
 var utils = require('./utils');
 
 client.Dispatcher.on(Events.GATEWAY_READY, e => {
-  console.log("Connected as: " + client.User.username);
+  console.log("Connected as: " + client.User.username + " to " + client.Guilds.length + " guilds");
 });
 
 let isAllowed = (member, cb) => {
@@ -41,15 +41,6 @@ let isAllowed = (member, cb) => {
     }
     cb(false);
   });
-};
-
-// The b1nzy way!
-let shardContains = (guildId) => {
-  if (shards.indexOf(guildId[guildId.length-5]) > -1) {
-    return true;
-  }
-
-  return false;
 };
 
 let queueUp = (video, message) => {
@@ -150,18 +141,6 @@ client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
   if (!e.message.guild)
     return;
 
-  if (e.message.content == "!musicstats") {
-    var voiceCo = client.VoiceConnections.filter(vc => vc.voiceConnection.guildId != null)
-      .filter(vc => shardContains(vc.voiceConnection.guildId));
-    var guilds = client.Guilds.filter(g => shardContains(g.id));
-    e.message.channel.sendMessage(":headphones: **Shard "+shards.join(',')+"** "+
-        "Currently connected to **"+guilds.length+" guild"+(guilds.length > 1 ? "s" : "")+
-          "** & **"+voiceCo.length+" voice channel"+ (voiceCo.length > 1 ? "s" : "") +"** :ok_hand:.");
-  }
-
-  if (shardContains(e.message.guild.id) == false)
-      return;
- 
   utils.isMusicEnabled (e.message.guild, (musicEnabled) => {
     if (!musicEnabled)
       return;
