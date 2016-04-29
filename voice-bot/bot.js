@@ -6,24 +6,40 @@ var redisURL = process.env.REDIS_URL,
     ytdl = require('ytdl-core'),
     apiKey = process.env.GOOGLE_API_KEY,
     request = require('request'),
-    shard = process.env.SHARD,
+    shard = process.env.SHARD || 0,
+    shard_count = process.env.SHARD_COUNT || 0,
     threads = process.env.THREADS || 1,
-    compression_level = process.env.COMPRESSION_LEVEL || 7;
+    compression_level = process.env.COMPRESSION_LEVEL || 7,
+    youtubedl = require('youtube-dl');
+var utils = require('./utils');
 
 var Discordie = require("discordie");
 var Events = Discordie.Events
 
 shard = parseInt(shard);
-var client = new Discordie({shardId: shard, shardCount:10});
+shard_count = parseInt(shard_count);
+var options = {};
+if (shard_count!=0) {
+  options = {
+    shardId: shard,
+    shardCount: shard_count,
+  }
+}
+
+var client = new Discordie(options);
 client.Messages.setMessageLimit(50);
 client.connect({token: process.env.MEE6_TOKEN});
-var utils = require('./utils');
+
 
 client.Dispatcher.on(Events.GATEWAY_READY, e => {
   console.log("Connected as: " + client.User.username + " to " + client.Guilds.length + " guilds");
 });
 
 let isAllowed = (member, cb) => {
+  var vc = member.getVoiceChannel();
+  if (!vc) {
+    cb(false);
+  }
   if (member.can(Discordie.Permissions.General.MANAGE_GUILD, member.guild)) {
     cb(true);
     return;
@@ -43,60 +59,47 @@ let isAllowed = (member, cb) => {
   });
 };
 
-let queueUp = (video, message) => {
+let queueUp = (music, message) => {
   var guild = message.guild;
   utils.isMusicEnabled(guild, (musicEnabled) => {
     if (!musicEnabled)
       return;
-    video.addedBy = {
+    music.addedBy = {
       name: message.author.username,
       discriminator: message.author.discriminator,
       avatar: message.author.avatarURL
     };
-    redisClient.rpush("Music."+guild.id+":request_queue", JSON.stringify(video), (error) => {
+    redisClient.rpush("Music."+guild.id+":request_queue", JSON.stringify(music), (error) => {
       if (error){
-        message.channel.sendMessage("An error happened when Queuing up the video...");
+        message.channel.sendMessage("An error happened when Queuing up the music...");
         console.log(error);
       } 
       else
-        message.channel.sendMessage("**"+ video.snippet.title +"** added! :ok_hand:")
+        message.channel.sendMessage("**"+ music.title +"** added! :ok_hand:")
     });
   });
 };
 
-let getStreamFromYT = (video) => {
-  var link = "http://youtube.com/?v="+video.id.videoId;
-  return ytdl(link, {filter: format => format.container == 'mp4', quality: 'lowest'});
-};
-
-let getVideoInfo = (video) => {
-  var link = "http://youtube.com/?v="+video.id.videoId;
-}
-
-function playRemote(video, guild, info) {
-  var remote = "http://youtube.com/?v="+video.id.videoId;
-  function onMediaInfo(err, mediaInfo) {
-    if (err) return console.log("ytdl error:", err);
-    // sort by bitrate, high to low; prefer webm over anything else
-    var formats = mediaInfo.formats.filter(f => f.container === "webm")
-    .sort((a, b) => b.audioBitrate - a.audioBitrate);
-
-    // get first audio-only format or fallback to non-dash video
-    var bestaudio = formats.find(f => f.audioBitrate > 0 && !f.bitrate) ||
-                    formats.find(f => f.audioBitrate > 0);
-    if (!bestaudio) return console.log("[playRemote] No valid formats");
-    if (!info) return console.log("[play] Voice not connected");
-    var encoder = info.voiceConnection.createExternalEncoder({
-      type: "ffmpeg", source: bestaudio.url,
-      inputArgs: ["-threads", threads],
-      outputArgs: ["-compression_level", compression_level]
-    });
-    encoder.once("end", () => playOrNext(null, guild));
-    encoder.play();
-  }
-  try {
-    ytdl.getInfo(remote, onMediaInfo);
-  } catch (e) { console.log("ytdl threw:", e); }
+function playRemote(music, guild, voiceConnectionInfo) {
+  var remote = music.url;
+  if (!music.url) return;
+  youtubedl.getInfo(remote, (err, info) => {
+    if (err) {
+      console.log("youtubedl error" + err);
+      return;
+    }
+    try {
+      if (!voiceConnectionInfo) return console.log("Voice not connected");
+      var encoder = voiceConnectionInfo.voiceConnection.createExternalEncoder({
+        type: "ffmpeg",
+        source: info.url,
+        outputArgs: ["-compression_level", compression_level]
+      });
+      encoder.once("end", () => playOrNext(null, guild));
+      encoder.play();
+    } catch (e) { console.log("encode throw", e); }
+    
+  });
 }
 
 let playOrNext = (message, guild) => {
@@ -110,21 +113,21 @@ let playOrNext = (message, guild) => {
       return;
     }
     
-    var voiceConnection = client.VoiceConnections.getForGuild(guild);
-    if (!voiceConnection){
+    var voiceConnectionInfo = client.VoiceConnections.getForGuild(guild);
+    if (!voiceConnectionInfo){
       if (message)
         message.channel.sendMessage("I'm not connected to the voice channel yet :grimacing:...");
       return;
     }
-    redisClient.lpop("Music."+guild.id+":request_queue", (error, video) => {
-      if (!video) {
+    redisClient.lpop("Music."+guild.id+":request_queue", (error, music) => {
+      if (!music) {
         if (message)
           message.channel.sendMessage("Nothing to play... :grimacing:");
         return;
       }
-      video = JSON.parse(video);
-      playRemote(video, guild, voiceConnection);
-      redisClient.set("Music."+guild.id+":now_playing", JSON.stringify(video));
+      music = JSON.parse(music);
+      playRemote(music, guild, voiceConnectionInfo);
+      redisClient.set("Music."+guild.id+":now_playing", JSON.stringify(music));
     });
   });
 };
@@ -136,6 +139,13 @@ let stop = (message) => {
     encoderStream.unpipeAll();
   }
 };
+
+let leave = (message) => {
+  var voiceCo = client.VoiceConnections.getForGuild(message.guild);
+  if (voiceCo) {
+    voiceCo.disconnect();
+  }
+}
 
 client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
   if (!e.message.guild)
@@ -151,30 +161,61 @@ client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
         return
       var command = '!add';
       if (e.message.content.startsWith(command + ' ')){
-        var search = e.message.content.substring(command.length+1, e.message.content.length);
-        var searchURL = 'https://www.googleapis.com/youtube/v3/search' + 
-          '?part=snippet&q='+escape(search)+'&key='+apiKey;
-        request(searchURL, (error, response) => {
-          if (!error) {
-            var payload = JSON.parse(response.body);
-            if (payload['items'].length == 0) {
-              e.message.channel.sendMessage("Didn't find anything :cry:!");
-              return
+        var arg = e.message.content.substring(command.length+1, e.message.content.length);
+        if (!arg.startsWith("http")) {
+          var search = arg;
+          var searchURL = 'https://www.googleapis.com/youtube/v3/search' + 
+            '?part=snippet&q='+escape(search)+'&key='+apiKey;
+          request(searchURL, (error, response) => {
+            if (!error) {
+              var payload = JSON.parse(response.body);
+              if (payload['items'].length == 0) {
+                e.message.channel.sendMessage("Didn't find anything :cry:!");
+                return
+              }
+            
+              var videos = payload.items.filter(item => item.id.kind === 'youtube#video');
+              if (videos.length === 0){
+                e.message.channel.sendMessage("Didn't find any video :cry:!");
+                return
+              }
+              var video = videos[0];
+              url = "https://youtube.com/?v="+video.id.videoId;
+              youtubedl.getInfo(url, (err, info) => {
+                if (err) {
+                  e.message.channel.sendMessage("An error occured, sorry :cry:...");
+                  return;
+                }
+                var music = {
+                  title: info.title,
+                  url: info.url,
+                  thumbnail: info.thumbnail,
+                };
+                queueUp(music, e.message);
+              });
             }
-          
-            var videos = payload.items.filter(item => item.id.kind === 'youtube#video');
-            if (videos.length === 0){
-              e.message.channel.sendMessage("Didn't find any video :cry:!");
-              return
+            else {
+              e.message.channel.sendMessage("An error occured durring the search :frowning:");
+              return;
             }
-            var video = videos[0];
-            queueUp(video, e.message);
-          
-          }
-          else {
-            e.message.channel.sendMessage("An error occured durring the search :frowning:")
-          }
-        });
+          });
+        }
+        else {
+          var url = arg;
+          youtubedl.getInfo(url, [], (err, info) => {
+            if (err) {
+              e.message.channel.sendMessage("An error occured, sorry :cry:...");
+              return;
+            }
+            var music = {
+              title: info.title,
+              url: info.url,
+              thumbnail: info.thumbnail,
+            };
+            queueUp(music, e.message);
+          });
+        }
+
       }
 
       if (e.message.content == "!join") {
@@ -183,10 +224,14 @@ client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
         if (voiceChannels.length > 0) {
           voiceChannels[0].join(false, false);
           let check = (msg) => {
-             if (client.VoiceConnections.getForGuild(msg.guild))
+            var voiceConnectionInfo = client.VoiceConnections.getForGuild(msg.guild);
+            if (voiceConnectionInfo) {
+              if (voiceConnectionInfo.voiceConnection != null) {
                 msg.edit("Successfully connected :ok_hand:!");
-              else
-                setTimeout(()=>{check(msg)}, 1);
+              }
+            }
+            else
+              setTimeout(()=>{check(msg)}, 1);
           };
           e.message.channel.sendMessage("Connecting to Voice... Please wait...").then((msg, error) => {
             check(msg);
@@ -211,18 +256,18 @@ client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
       if (e.message.content == "!playlist") {
         var playlistString = "";
         var voiceConnection = client.VoiceConnections.getForGuild(e.message.guild);
-          redisClient.get("Music."+e.message.guild.id+":now_playing", (err, video) => {
-            if (!err && voiceConnection && video){
-              video = JSON.parse(video);
-              playlistString += "`NOW PLAYING` **"+video.snippet.title+"** added by **"+video.addedBy.name+"**\n\n";
+          redisClient.get("Music."+e.message.guild.id+":now_playing", (err, music) => {
+            if (!err && voiceConnection && music){
+              music = JSON.parse(music);
+              playlistString += "`NOW PLAYING` :notes: **"+music.title+"** added by **"+music.addedBy.name+"**\n\n";
             }
 
             redisClient.lrange("Music."+e.message.guild.id+":request_queue", 0, 4, (err, playlist) =>{
-              playlist.forEach( (video, index) => {
-                video = JSON.parse(video);
-                playlistString += "`#"+(index+1)+"` **"+video.snippet.title+"** added by **"+video.addedBy.name+"**\n";
+              playlist.forEach( (music, index) => {
+                music = JSON.parse(music);
+                playlistString += "`#"+(index+1)+"` **"+music.title+"** added by **"+music.addedBy.name+"**\n";
               });
-              playlistString += "\n `Full Playlist > ` https://mee6.xyz/request_playlist/" + e.message.guild.id;
+              playlistString += "\n `Full Playlist > ` <https://mee6.xyz/request_playlist/>" + e.message.guild.id;
               e.message.channel.sendMessage(playlistString);
             });
 
