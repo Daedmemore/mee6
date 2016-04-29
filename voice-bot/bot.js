@@ -50,7 +50,7 @@ let isAllowed = (member, cb) => {
       return;
     }
     for (var role of member.roles){
-      if (roles.indexOf(role.name) > -1){
+      if (roles.indexOf(role.name) > -1 || roles.indexOf(role.id) > -1){
         cb(true);
         return;
       }
@@ -83,23 +83,16 @@ let queueUp = (music, message) => {
 function playRemote(music, guild, voiceConnectionInfo) {
   var remote = music.url;
   if (!music.url) return;
-  youtubedl.getInfo(remote, (err, info) => {
-    if (err) {
-      console.log("youtubedl error" + err);
-      return;
-    }
     try {
       if (!voiceConnectionInfo) return console.log("Voice not connected");
       var encoder = voiceConnectionInfo.voiceConnection.createExternalEncoder({
         type: "ffmpeg",
-        source: info.url,
+        source: music.url,
         outputArgs: ["-compression_level", compression_level]
       });
       encoder.once("end", () => playOrNext(null, guild));
       encoder.play();
     } catch (e) { console.log("encode throw", e); }
-    
-  });
 }
 
 let playOrNext = (message, guild) => {
@@ -181,17 +174,18 @@ client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
               }
               var video = videos[0];
               url = "https://youtube.com/?v="+video.id.videoId;
-              youtubedl.getInfo(url, (err, info) => {
-                if (err) {
-                  e.message.channel.sendMessage("An error occured, sorry :cry:...");
-                  return;
-                }
-                var music = {
-                  title: info.title,
-                  url: info.url,
-                  thumbnail: info.thumbnail,
-                };
-                queueUp(music, e.message);
+              youtubedl.getInfo(url, ['-f', "bestaudio"], (err, info) => {
+               if (err) {
+                e.message.channel.sendMessage("An error occured, sorry :cry:...");
+                return;
+              }
+              var music = {
+               title: info.title,
+               url: info.url,
+               thumbnail: info.thumbnail,
+              };
+              queueUp(music, e.message);
+
               });
             }
             else {
@@ -202,7 +196,7 @@ client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
         }
         else {
           var url = arg;
-          youtubedl.getInfo(url, [], (err, info) => {
+          youtubedl.getInfo(url, ['-f', "'bestaudio"], (err, info) => {
             if (err) {
               e.message.channel.sendMessage("An error occured, sorry :cry:...");
               return;
@@ -267,7 +261,7 @@ client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
                 music = JSON.parse(music);
                 playlistString += "`#"+(index+1)+"` **"+music.title+"** added by **"+music.addedBy.name+"**\n";
               });
-              playlistString += "\n `Full Playlist > ` <https://mee6.xyz/request_playlist/>" + e.message.guild.id;
+              playlistString += "\n `Full Playlist > ` <https://mee6.xyz/request_playlist/" + e.message.guild.id + ">";
               e.message.channel.sendMessage(playlistString);
             });
 
