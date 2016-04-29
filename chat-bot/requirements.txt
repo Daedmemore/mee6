@@ -1,4 +1,4 @@
 # Latest discord.py
-git+https://github.com/Rapptz/discord.py.git@async
+git+https://github.com/cookkkie/discord.py.git@async
 aioredis
 motor
