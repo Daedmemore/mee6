@@ -29,3 +29,8 @@ CARBONITEX_KEY=
 
 # For youtube api
 GOOGLE_API_KEY=
+
+# Data dog
+
+DD_API_KEY=
+DD_APP_KEY=
