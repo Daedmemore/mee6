@@ -23,7 +23,7 @@ class Welcome(Plugin):
         channel_name = await storage.get('channel_name')
 
         destination = server
-        channel = discord.utils.find(lambda c: c.name == channel_name, server.channels)
+        channel = discord.utils.find(lambda c: c.name == channel_name or c.id == channel_name, server.channels)
         if channel is not None:
             destination = channel
 

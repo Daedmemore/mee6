@@ -45,7 +45,7 @@ class Levels(Plugin):
             return True
 
         for role in member.roles:
-            if role.name in banned_roles:
+            if role.name in banned_roles or role.id in banned_roles:
                 return True
 
         return False

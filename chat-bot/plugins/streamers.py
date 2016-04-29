@@ -83,7 +83,12 @@ class Streamers(Plugin):
                 announcement_channel = discord.utils.get(
                         server.channels,
                         name=a_c
-                ) or server
+                )
+                if announcement_channel is None:
+                    announcement_channel = discord.utils.get(
+                        server.channels,
+                        id = a_c
+                    ) or server
 
                 msg = await self.mee6.send_message(announcement_channel, announcement_msg)
                 # Mark as announcement

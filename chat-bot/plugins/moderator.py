@@ -45,6 +45,7 @@ class Moderator(Plugin):
         authorized = False
         for role in member.roles:
             if (role.name in role_names or
+                role.id in role_names or
                 role.permissions.manage_server):
                 authorized = True
                 break
