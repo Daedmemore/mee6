@@ -1,7 +1,9 @@
 from plugin import Plugin
 import discord
 import asyncio
+import logging
 
+log = logging.getLogger('discord')
 
 class EarlyBackers(Plugin):
 
@@ -9,6 +11,7 @@ class EarlyBackers(Plugin):
     mee6_server_id = "159962941502783488"
     roles = [
         'Admin',
+        'Support',
         'Contributors',
         'Early Backers'
     ]
@@ -28,5 +31,8 @@ class EarlyBackers(Plugin):
 
     async def on_ready(self):
         while True:
-            await self.update_early_backers()
+            try:
+                await self.update_early_backers()
+            except Exception:
+                log.info("An error occured in early backers plugin, retrying in 10 sec...")
             await asyncio.sleep(10)
