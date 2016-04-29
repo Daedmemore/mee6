@@ -19,7 +19,7 @@ class ChangeLog(Plugin):
 
         owners = set(server.owner for server in self.mee6.servers)
         for owner in owners:
-            ignored = self.mee6.db.redis.get('user:{}:ignored'.format(
+            ignored = await self.mee6.db.redis.get('user:{}:ignored'.format(
                 owner.id
             ))
             if ignored:
