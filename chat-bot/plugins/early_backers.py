@@ -34,5 +34,5 @@ class EarlyBackers(Plugin):
             try:
                 await self.update_early_backers()
             except Exception:
-                log.info("An error occured in early backers plugin, retrying in 10 sec...")
+                log.info("An error occured in the Early Backers plugin")
             await asyncio.sleep(10)
