@@ -11,8 +11,8 @@
                       <div class="col-md-7 col-sm-7 col-xs-7">
 			<strong><h4>
                           <strong>#{{loop.index}}</strong> 
-                    <img src="{{music.snippet.thumbnails.default.url}}" class="img-thumbnail">
-					{{music.snippet.title}} {% if is_admin %}<small><a href="{{url_for('delete_request', server_id=server.id, pos=loop.index-1)}}">[delete]</a></small>{% endif %} 
+                    <img src="{{music.thumbnails}}" class="img-thumbnail">
+					{{music.title}} {% if is_admin %}<small><a href="{{url_for('delete_request', server_id=server.id, pos=loop.index-1)}}">[delete]</a></small>{% endif %} 
 		      </h4>
                       </div>
 		      <div class="col-md-5 col-sm-5 col-xs-5">

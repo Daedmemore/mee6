@@ -46,8 +46,15 @@
                     <span class="input-group-addon">!</span>
                     <input class="form-control" type="text" name="cmd_name" placeholder="command">
                   </div><br />
-                  <textarea class="form-control" name="cmd_message" placeholder="message"></textarea>
-
+                  <textarea class="form-control" name="cmd_message" id="cmd_message" placeholder="message"></textarea>
+                  <script>
+			$(function(){
+			    $("#cmd_message").mention({
+				queryBy: ['name', 'username'],
+				users: {{guild_members|tojson|safe}}
+			    });
+			});
+                  </script>
                   <br />
                   <center><a href="#" id="add" class="btn btn-success"><i class="fa fa-pencil"></i> Add</a></center>
                   </form>
@@ -61,4 +68,7 @@
         </div>
     </div>
 
+    <script src="{{url_for('static', filename='js/mention.js')}}"></script>
+    <script src="{{url_for('static', filename='js/bootstrap-typeahead.js')}}"></script>
+    <link href="{{url_for('static', filename='css/recommended-styles.css')}}" rel="stylesheet">
 {% endblock %}

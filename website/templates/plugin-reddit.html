@@ -10,45 +10,18 @@
                 <form id="reddit" method="POST" action="{{url_for('update_reddit', server_id=server['id'])}}">
                     <div class="form-group">
 		      <input name=_csrf_token type=hidden value="{{ csrf }}">
-                      <label class="control-label" for="display_channel">Display Channel</label>
-                      <input class="form-control input-lg" name="display_channel" value="{{display_channel}}" type="text" id="display_channel">
+		      <label class="control-label" for="announcement_channel">Display Channel</label>
+		      <select class="form-control input-lg" id="display_channel" name="display_channel">
+			{% for channel in guild_channels %}
+			   <option value="{{channel.id}}"{%if channel.id == display_channel.id%} selected{%endif%}>#{{channel.name}}</option>
+			{% endfor %}
+		      </select>
                       <div class="well well-sm">
-			      The discord channel where the new subreddits posts will be posted!<br />
-			      If empty or misspelled, <strong>Mee6</strong> will try to post the new posts on the server default channel.
+			      The discord channel where the new subreddits posts will be displayed!<br />
                       </div>
-		      <div class="subs_wrap">
-                            <label class="control-label" for="streamesub">Subreddits <button class="btn btn-primary btn-xs add_sub">Add</button></label>
-                            {%for sub in subs %}
-                            <div class="input-group">
-                                <input type="text" class="form-control" value="{{sub}}" placeholder="Subreddit" name="subs[]" type="text" id="subs">
-                                <span class="input-group-btn">
-                                  <button class="btn btn-default remove_field">Remove</button>
-                                </span>
-                             </div>
-                             {% endfor %}
-                      </div>
-                      <script>
-                      $(document).ready(function() {
-                            var max_fields      = 100; //maximum input boxes allowed
-                            var wrapper         = $(".subs_wrap"); //Fields wrapper
-                            var add_button      = $(".add_sub"); //Add button ID
-
-                            var x = 1; //initlal text box count
-                            $(add_button).click(function(e){ //on add input button click
-                                e.preventDefault();
-                                if(x < max_fields){ //max input box allowed
-                                    x++; //text box increment
-                                    $(wrapper).append('<div class="input-group"><input type="text" class="form-control" placeholder="Subbredit Name" name="subs[]" type="text"><span class="input-group-btn"><button class="btn btn-default remove_field">Remove</button></span></div>'); //add input box
-                                }
-                            });
-
-                            $(wrapper).on("click",".remove_field", function(e){ //user click on remove text
-
-                                e.preventDefault(); $(this).parent('').parent('').remove(); x--;
-                            })
-                        });
-                      </script>
-                      <br />
+                      <label class="control-label" for="subreddits">Subreddits</label> 
+                      <input type="text" data-role="tagsinput" value="{{subs}}"
+                                                               name="subs" data-role="tagsinput"><br /><br />
                       <button type="submit" class="btn btn-primary">Update</button>
                     </div>
                 </form>

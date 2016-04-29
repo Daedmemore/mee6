@@ -1,4 +1,4 @@
-{% macro view(name, view='', pretty_name='', early_backers=False, no_links=False, description='', soon=False, server=None, enabled_plugins=[]) %}
+{% macro view(name, view='', icon='', pretty_name='', early_backers=False, no_links=False, description='', soon=False, server=None, enabled_plugins=[]) %}
 {% if pretty_name=='' %}
     {% set pretty_name=name %}
 {% endif %}
@@ -27,7 +27,7 @@
 <span class="badge soon">Soon</span>
 {% endif %}
 {% endif %}
-  <h4 class="list-group-item-heading">{{pretty_name}}</h4>
+<h4 class="list-group-item-heading">{% if icon!='' %} <i class="fa fa-{{icon}}" aria-hidden="true"></i>  {%endif%}{{pretty_name}}</h4>
   <p class="list-group-item-text">{{description|safe}}</p>
 {% if soon == False and no_links==False%}
 </a>

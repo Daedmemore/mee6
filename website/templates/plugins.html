@@ -3,6 +3,7 @@
 <div class="list-group">
 {{ plugin.view(
 'Commands',
+icon='exclamation',
 view='plugin_commands',
 description='Add and manage your <strong>AWESOME</strong> custom commands !',
 server=server,
@@ -10,6 +11,7 @@ enabled_plugins=enabled_plugins
 )}}
 {{ plugin.view(
 'Levels',
+icon='trophy',
 view='plugin_levels',
 description='Let your members gain <strong>XP</strong> and <strong>levels</strong> by participating in the chat !',
 server=server,
@@ -17,6 +19,7 @@ enabled_plugins=enabled_plugins
 )}}
 {{ plugin.view(
 'Moderator',
+icon='legal',
 view='plugin_moderator',
 description='Cool moderator commands! slowmode/clear/mute',
 server=server,
@@ -24,14 +27,16 @@ enabled_plugins=enabled_plugins
 )}}
 {{ plugin.view(
 'Music',
+icon='music',
 early_backers=True,
 view='plugin_music',
-description='Music!!!',
+description='Listen to music with your friends!',
 server=server,
 enabled_plugins=enabled_plugins
 )}}
 {{ plugin.view(
 'AnimuAndMango',
+icon='angellist',
 pretty_name='Animu and Mango',
 view='plugin_animu',
 description='Search the web for your favorite anime and manga.',
@@ -40,6 +45,7 @@ enabled_plugins=enabled_plugins
 )}}
 {{ plugin.view(
 'Git',
+icon='github',
 pretty_name='Github Repo',
 view='plugin_git',
 description='Enables the <strong>!git</strong> command.',
@@ -48,6 +54,7 @@ enabled_plugins=enabled_plugins
 )}}
 {{ plugin.view(
 'Help',
+icon='question',
 pretty_name='Help Me!',
 view='plugin_help',
 description='Enables the <strong>!help</strong> command.',
@@ -57,21 +64,24 @@ enabled_plugins=enabled_plugins
 {{ plugin.view(
 'Streamers',
 pretty_name='Twitch',
+icon='twitch',
 view='plugin_streamers',
 description='Get notified when your best <strong>Twitch</strong> streamers go live!',
 server=server,
 enabled_plugins=enabled_plugins
 )}}
-{{ plugin.view(
+{# plugin.view(
 'Reddit',
+icon='reddit',
 pretty_name='Reddit',
 view='plugin_reddit',
 description='Get the new posts of your favorite subreddits!',
 server=server,
 enabled_plugins=enabled_plugins
-)}}
+)#}
 {{ plugin.view(
 'Welcome',
+icon="hand-spock-o",
 view='plugin_welcome',
 description='Display a welcome message for members that have joined the server!',
 server=server,
@@ -79,6 +89,7 @@ enabled_plugins=enabled_plugins
 )}}
 {{ plugin.view(
 'Logs',
+icon="book",
 view='plugin_logs',
 description='Logs all the messages of your server!',
 server=server,

@@ -7,6 +7,14 @@
     background-color: #006687;
 }
 
+.bootstrap-tagsinput {
+    width: 100% !important;
+}
+
+.label-info {
+    background-color: #008cba!important;
+}
+
 .dashboard-nav{
     margin-bottom: 0;
 }

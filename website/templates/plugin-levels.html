@@ -17,7 +17,7 @@
                           <input type="checkbox" name="enable" {% if announcement_enabled %} checked {% endif %}> Enable/Disable
                         </label>
 			<label>
-                          <input type="checkbox" name="whisp" {% if whisp %} checked {% endif %}> Whisp only
+                          <input type="checkbox" name="whisp" {% if whisp %} checked {% endif %}> Send it in whisp
 			</label>
                       </div>
                       <div class="well well-sm">
@@ -31,75 +31,35 @@
                         <div class="well well-sm">
                             In order to avoid people flooding the <strong>!rank</strong> command, you can set a cooldown in seconds.
                         </div>
+			<label class="control-label" for="banned_roles">Banned Roles</label>
+			  <input type="text" data-role="tagsinput" name="banned_roles" class="banned_roles"/><br />
+		      <div class="well well-sm">
+			      These roles, don't gain <strong>xp</strong>.
+			</div>
+                          <script>
+				$(function() {
+				var roles = new Bloodhound({
+                                    datumTokenizer: Bloodhound.tokenizers.obj.whitespace('name'),
+                                    queryTokenizer: Bloodhound.tokenizers.whitespace,
+                                    local: {{guild_roles|tojson|safe}}
+                                });
+                                roles.initialize();
 
-
-                      <div class="banned_members_wrap">
-
-                            <label class="control-label" for="banned-members">Banned Members <button class="btn btn-primary btn-xs add_banned_member">Add</button></label>
-                            {%for member in banned_members %}
-                            <div class="input-group">
-                                <input type="text" class="form-control" value="{{member}}" placeholder="Member Name" name="banned_members[]" type="text" id="banned-members">
-                                <span class="input-group-btn">
-                                  <button class="btn btn-default remove_field">Remove</button>
-                                </span>
-                             </div>
-                             {% endfor %}
-                      </div>
-                      <script>
-                      $(document).ready(function() {
-                            var max_fields      = 100; //maximum input boxes allowed
-                            var wrapper         = $(".banned_members_wrap"); //Fields wrapper
-                            var add_button      = $(".add_banned_member"); //Add button ID
-
-                            var x = 1; //initlal text box count
-                            $(add_button).click(function(e){ //on add input button click
-                                e.preventDefault();
-                                if(x < max_fields){ //max input box allowed
-                                    x++; //text box increment
-                                    $(wrapper).append('<div class="input-group"><input type="text" class="form-control" placeholder="Member Name" name="banned_members[]" type="text"><span class="input-group-btn"><button class="btn btn-default remove_field">Remove</button></span></div>'); //add input box
-                                }
-                            });
-
-                            $(wrapper).on("click",".remove_field", function(e){ //user click on remove text
-
-                                e.preventDefault(); $(this).parent('').parent('').remove(); x--;
-                            })
-                        });
-                      </script>
-                      <br />
-                      <div class="banned_roles_wrap">
-
-                            <label class="control-label" for="banned-roles">Banned Roles <button class="btn btn-primary btn-xs add_banned_role">Add</button></label>
-                            {%for role in banned_roles %}
-                            <div class="input-group">
-                                <input type="text" class="form-control" placeholder="Role Name" name="banned_roles[]" value="{{role}}" type="text" id="banned-roles">
-                                <span class="input-group-btn">
-                                  <button class="btn btn-default remove_field">Remove</button>
-                                </span>
-                             </div>
-                             {%endfor%}
-                      </div>
-                      <script>
-                      $(document).ready(function() {
-                            var max_fields      = 100; //maximum input boxes allowed
-                            var wrapper         = $(".banned_roles_wrap"); //Fields wrapper
-                            var add_button      = $(".add_banned_role"); //Add button ID
-
-                            var x = 1; //initlal text box count
-                            $(add_button).click(function(e){ //on add input button click
-                                e.preventDefault();
-                                if(x < max_fields){ //max input box allowed
-                                    x++; //text box increment
-                                    $(wrapper).append('<div class="input-group"><input type="text" class="form-control" placeholder="Role Name" name="banned_roles[]" type="text"><span class="input-group-btn"><button class="btn btn-default remove_field">Remove</button></span></div>'); //add input box
-                                }
-                            });
-
-                            $(wrapper).on("click",".remove_field", function(e){ //user click on remove text
-
-                                e.preventDefault(); $(this).parent('').parent('').remove(); x--;
-                            })
-                        });
-                      </script>
+                                var elt = $('.banned_roles');
+                                elt.tagsinput({
+                                    itemValue: 'id',
+                                    itemText: 'name',
+                                    typeaheadjs: {
+                                        name: 'roles',
+                                        displayKey: 'name',
+                                        source: roles.ttAdapter()
+                                    }
+                                });
+                                {% for role in banned_roles %}
+                                    elt.tagsinput('add', {{role|tojson|safe}});
+                                {% endfor %}
+				});
+                          </script>
                       <br />
                       <button type="submit" class="btn btn-primary">Update</button>
                     </div>
@@ -109,4 +69,5 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/typeahead.js/0.11.1/typeahead.bundle.min.js"></script>
 {% endblock %}

@@ -2,6 +2,8 @@ from flask import Flask, session, request, url_for, render_template, redirect, \
 jsonify, make_response, flash, abort, Response
 from flask.views import View
 import os
+from re import sub
+import requests
 import pymongo
 from functools import wraps
 from requests_oauthlib import OAuth2Session
@@ -23,6 +25,7 @@ API_BASE_URL = os.environ.get('API_BASE_URL', 'https://discordapp.com/api')
 AUTHORIZATION_BASE_URL = API_BASE_URL + '/oauth2/authorize'
 DOMAIN = os.environ.get('VIRTUAL_HOST', 'localhost:5000')
 TOKEN_URL = API_BASE_URL + '/oauth2/token'
+MEE6_TOKEN = os.getenv('MEE6_TOKEN')
 MONGO_URL = os.environ.get('MONGO_URL')
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
@@ -265,6 +268,37 @@ def notification(server_id):
 
     return redirect(url_for('dashboard', server_id=server_id))
 
+def get_guild(server_id):
+    headers = {'Authorization': 'Bot '+MEE6_TOKEN}
+    r = requests.get(API_BASE_URL+'/guilds/{}'.format(server_id), headers=headers)
+    if r.status_code == 200:
+        return r.json()
+    return None
+
+def get_guild_members(server_id):
+    headers = {'Authorization': 'Bot '+MEE6_TOKEN}
+    members = []
+    while len(members)%1000 == 0 :
+        r = requests.get(
+            API_BASE_URL+'/guilds/{}/members'.format(server_id),
+            params={'limit': 1000, 'offset': len(members)/1000},
+            headers=headers)
+        if r.status_code == 200:
+            members += r.json()
+    return members
+
+def get_guild_channels(server_id, voice=True, text=True):
+    headers = {'Authorization': 'Bot '+MEE6_TOKEN}
+    r = requests.get(API_BASE_URL+'/guilds/{}/channels'.format(server_id), headers=headers)
+    if r.status_code == 200:
+        all_channels = r.json()
+        if not voice:
+            channels = list(filter(lambda c: c['type']!='voice', all_channels))
+        if not text:
+            channels = list(filter(lambda c: c['type']!='text', all_channels))
+        return channels
+    return None
+
 """
     Command Plugin
 """
@@ -274,14 +308,45 @@ def notification(server_id):
 def plugin_commands(server_id):
     commands = []
     commands_names = db.smembers('Commands.{}:commands'.format(server_id))
+    _members = get_guild_members(server_id)
+    #formating
+    __members = {}
+    for member in _members:
+        key = '<@{}>'.format(member['user']['id'])
+        __members[key] = '{}#{}'.format(member['user']['username'], member['user']['discriminator'])
+
+    pattern = r'(<@[0-9]*>)'
+    def repl(k):
+        key = k.groups()[0]
+        val = __members.get(key)
+        if val:
+            return val
+        return key
     for cmd in commands_names:
+        message = db.get('Commands.{}:command:{}'.format(server_id, cmd))
+        message = sub(pattern, repl, message)
         command = {
             'name': cmd,
-            'message': db.get('Commands.{}:command:{}'.format(server_id, cmd))
+            'message': message
         }
         commands.append(command)
     commands = sorted(commands, key=lambda k: k['name'])
+    members = []
+    for m in _members:
+        user = {
+            'username': m['user']['username']+'#'+m['user']['discriminator'],
+            'name': m['user']['username'],
+        }
+        if m['user']['avatar']:
+            user['image'] = 'https://cdn.discordapp.com/avatars/{}/{}.jpg'.format(
+                m['user']['id'],
+                m['user']['avatar']
+            )
+        else:
+            user['image'] = url_for('static', filename='img/no_logo.png')
+        members.append(user)
     return {
+        'guild_members': members,
         'commands': commands
     }
 
@@ -291,8 +356,24 @@ def add_command(server_id):
     cmd_name = request.form.get('cmd_name', '')
     cmd_message = request.form.get('cmd_message', '')
 
+    _members = get_guild_members(server_id)
+    #formating
+    members = {}
+    for member in _members:
+        key = member['user']['username']+'#'+member['user']['discriminator']
+        members[key] = "<@{}>".format(member['user']['id'])
+
+    pattern = r'@(\w*#[0-9]{4})'
+    def repl(k):
+        key = k.groups()[0]
+        val = members.get(key)
+        if val:
+            return val
+        return key
+
+    cmd_message = sub(pattern, repl, cmd_message)
+
     edit = cmd_name in db.smembers('Commands.{}:commands'.format(server_id))
-    print(edit)
 
     import re
     cb = url_for('plugin_commands', server_id=server_id)
@@ -349,15 +430,19 @@ def plugin_levels(server_id):
 
     announcement = db.get('Levels.{}:announcement'.format(server_id))
 
-    banned_members = db.smembers('Levels.{}:banned_members'.format(server_id)) or []
-    banned_roles = db.smembers('Levels.{}:banned_roles'.format(server_id)) or []
-
+    db_banned_roles = db.smembers('Levels.{}:banned_roles'.format(server_id)) or []
+    guild = get_guild(server_id)
+    guild_roles = guild['roles']
+    banned_roles = list(filter(
+        lambda r: r['name'] in db_banned_roles or r['id'] in db_banned_roles,
+        guild_roles
+    ))
     cooldown = db.get('Levels.{}:cooldown'.format(server_id)) or 0
     return {
         'announcement': announcement,
         'announcement_enabled': announcement_enabled,
-        'banned_members': banned_members,
         'banned_roles': banned_roles,
+        'guild_roles': guild_roles,
         'cooldown': cooldown,
         'whisp': whisp
     }
@@ -368,8 +453,7 @@ def update_levels(server_id):
     servers = session['guilds']
     server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
 
-    banned_members = request.form.getlist('banned_members[]')
-    banned_roles = request.form.getlist('banned_roles[]')
+    banned_roles = request.form.get('banned_roles').split(',')
     announcement = request.form.get('announcement')
     enable = request.form.get('enable')
     whisp = request.form.get('whisp')
@@ -386,10 +470,6 @@ def update_levels(server_id):
     else:
         db.set('Levels.{}:announcement'.format(server_id), announcement)
         db.set('Levels.{}:cooldown'.format(server_id), cooldown)
-
-        db.delete('Levels.{}:banned_members'.format(server_id))
-        if len(banned_members)>0:
-            db.sadd('Levels.{}:banned_members'.format(server_id), *banned_members)
 
         db.delete('Levels.{}:banned_roles'.format(server_id))
         if len(banned_roles)>0:
@@ -482,14 +562,21 @@ def reset_player(server_id, player_id):
 def plugin_welcome(server_id):
     initial_welcome = '{user}, Welcome to **{server}**! Have a great time here :wink: !'
     welcome_message = db.get('Welcome.{}:welcome_message'.format(server_id))
-    channel_name = db.get('Welcome.{}:channel_name'.format(server_id))
+    db_welcome_channel = db.get('Welcome.{}:channel_name'.format(server_id))
+    guild_channels = get_guild_channels(server_id, voice=False)
+    welcome_channel = None
+    for channel in guild_channels:
+        if channel['name'] == db_welcome_channel or channel['id'] == db_welcome_channel:
+            welcome_channel = channel
+            break
     if welcome_message is None:
         db.set('Welcome.{}:welcome_message'.format(server_id), initial_welcome)
         welcome_message = initial_welcome
 
     return {
         'welcome_message': welcome_message,
-        'channel_name': channel_name
+        'guild_channels': guild_channels,
+        'welcome_channel': welcome_channel
     }
 
 @app.route('/dashboard/<int:server_id>/welcome/update', methods=['POST'])
@@ -499,13 +586,13 @@ def update_welcome(server_id):
     server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
 
     welcome_message = request.form.get('welcome_message')
-    channel_name = request.form.get('channel_name')
+    channel = request.form.get('channel')
 
     if welcome_message == '' or len(welcome_message) > 2000:
         flash('The welcome message cannot be empty or have 2000+ characters.', 'warning')
     else:
         db.set('Welcome.{}:welcome_message'.format(server_id), welcome_message)
-        db.set('Welcome.{}:channel_name'.format(server_id), channel_name)
+        db.set('Welcome.{}:channel_name'.format(server_id), channel)
         flash('Settings updated ;) !', 'success')
 
     return redirect(url_for('plugin_welcome', server_id=server_id))
@@ -634,7 +721,15 @@ def message_logs(server_id, dt, channel):
 @plugin_page('Streamers')
 def plugin_streamers(server_id):
     streamers = db.smembers('Streamers.{}:streamers'.format(server_id))
-    announcement_channel = db.get('Streamers.{}:announcement_channel'.format(server_id))
+    streamers = ','.join(streamers)
+    db_announcement_channel = db.get('Streamers.{}:announcement_channel'.format(server_id))
+    guild_channels = get_guild_channels(server_id, voice=False)
+    announcement_channel = None
+    print(db_announcement_channel)
+    for channel in guild_channels:
+        if channel['name'] == db_announcement_channel or channel['id'] == db_announcement_channel:
+            announcement_channel = channel
+            break
     announcement_msg = db.get('Streamers.{}:announcement_msg'.format(server_id))
     if announcement_msg is None:
         announcement_msg = "Hey @everyone! {streamer} is now live on http://twitch.tv/{streamer} ! Go check it out :wink:!"
@@ -642,6 +737,7 @@ def plugin_streamers(server_id):
 
     return {
         'announcement_channel': announcement_channel,
+        'guild_channels': guild_channels,
         'announcement_msg': announcement_msg,
         'streamers': streamers
     }
@@ -657,13 +753,13 @@ def update_streamers(server_id):
         flash('The announcement message should not be empty!', 'warning')
         return redirect(url_for('plugin_streamers', server_id=server_id))
 
-    streamers = request.form.getlist('streamers[]')
+    streamers = request.form.get('streamers').split(',')
     db.set('Streamers.{}:announcement_channel'.format(server_id), announcement_channel)
     db.set('Streamers.{}:announcement_msg'.format(server_id), announcement_msg)
     db.delete('Streamers.{}:streamers'.format(server_id))
     for streamer in streamers:
         if streamer != "":
-            db.sadd('Streamers.{}:streamers'.format(server_id), streamer.lower())
+            db.sadd('Streamers.{}:streamers'.format(server_id), streamer.replace(' ', '_').lower())
 
     flash('Configuration updated with success!', 'success')
     return redirect(url_for('plugin_streamers', server_id=server_id))
@@ -676,10 +772,18 @@ def update_streamers(server_id):
 @plugin_page('Reddit')
 def plugin_reddit(server_id):
     subs = db.smembers('Reddit.{}:subs'.format(server_id))
-    display_channel = db.get('Reddit.{}:display_channel'.format(server_id))
+    subs = ','.join(subs)
+    guild_channels = get_guild_channels(server_id, voice=False)
+    db_display_channel = db.get('Reddit.{}:display_channel'.format(server_id))
+    display_channel = None
+    for channel in guild_channels:
+        if channel['id']==display_channel or channel['name']==display_channel:
+            display_channel = channel
+            break
     return {
         'subs': subs,
-        'display_channel': display_channel
+        'display_channel': display_channel,
+        'guild_channels': guild_channels,
     }
 
 @app.route('/dashboard/<int:server_id>/update_reddit', methods=['POST'])
@@ -689,7 +793,7 @@ def update_reddit(server_id):
     server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
     display_channel = request.form.get('display_channel')
 
-    subs = request.form.getlist('subs[]')
+    subs = request.form.get('subs').split(',')
     db.set('Reddit.{}:display_channel'.format(server_id), display_channel)
     db.delete('Reddit.{}:subs'.format(server_id))
     for sub in subs:
@@ -706,14 +810,20 @@ def update_reddit(server_id):
 @app.route('/dashboard/<int:server_id>/moderator')
 @plugin_page('Moderator')
 def plugin_moderator(server_id):
-    roles = db.smembers('Moderator.{}:roles'.format(server_id))
+    db_moderator_roles = db.smembers('Moderator.{}:roles'.format(server_id)) or []
+    guild = get_guild(server_id)
+    guild_roles = guild['roles']
+    moderator_roles = list(filter(
+        lambda r: r['name'] in db_moderator_roles or r['id'] in db_moderator_roles,
+        guild_roles
+    ))
     clear = db.get('Moderator.{}:clear'.format(server_id))
     banned_words = db.get('Moderator.{}:banned_words'.format(server_id))
     slowmode = db.get('Moderator.{}:slowmode'.format(server_id))
     mute = db.get('Moderator.{}:mute'.format(server_id))
-
     return {
-        'roles': roles,
+        'moderator_roles': moderator_roles,
+        'guild_roles': guild_roles,
         'clear': clear,
         'banned_words': banned_words or '',
         'slowmode': slowmode,
@@ -726,10 +836,10 @@ def update_moderator(server_id):
     servers = session['guilds']
     server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
 
-    roles = request.form.getlist('roles[]')
+    moderator_roles = request.form.get('moderator_roles').split(',')
     banned_words = request.form.get('banned_words')
     db.delete('Moderator.{}:roles'.format(server_id))
-    for role in roles:
+    for role in moderator_roles:
         if role!="":
             db.sadd('Moderator.{}:roles'.format(server_id), role)
 
@@ -760,15 +870,23 @@ def update_moderator(server_id):
 @app.route('/dashboard/<int:server_id>/music')
 @plugin_page('Music', early_backers=True)
 def plugin_music(server_id):
-    allowed_roles = db.smembers('Music.{}:allowed_roles'.format(server_id)) or []
+    db_allowed_roles = db.smembers('Music.{}:allowed_roles'.format(server_id)) or []
+    guild = get_guild(server_id)
+    guild_roles = guild['roles']
+    allowed_roles = filter(
+        lambda r: r['name'] in db_allowed_roles or r['id'] in db_allowed_roles,
+        guild_roles
+    )
     return {
-        'allowed_roles': allowed_roles
+        'guild_roles' : guild_roles,
+        'allowed_roles': list(allowed_roles),
     }
 
 @app.route('/dashboard/<int:server_id>/update_music', methods=['POST'])
 @plugin_method
 def update_music(server_id):
-    allowed_roles = request.form.getlist('allowed_roles[]')
+    allowed_roles = request.form.get('allowed_roles')
+    allowed_roles = allowed_roles.split(',')
     db.delete('Music.{}:allowed_roles'.format(server_id))
     for role in allowed_roles:
         db.sadd('Music.{}:allowed_roles'.format(server_id), role)

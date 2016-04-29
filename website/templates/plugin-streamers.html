@@ -11,50 +11,22 @@
                     <div class="form-group">
 		      <input name=_csrf_token type=hidden value="{{ csrf }}">
                       <label class="control-label" for="announcement_channel">Announcement Channel</label>
-                      <input class="form-control input-lg" name="announcement_channel" value="{{announcement_channel}}" type="text" id="announcement_channel">
+		      <select class="form-control input-lg" id="announcement_channel" name="announcement_channel">
+			{% for channel in guild_channels %}
+			   <option value="{{channel.id}}"{%if channel.id == announcement_channel.id%} selected{%endif%}>#{{channel.name}}</option>
+			{% endfor %}
+		      </select>
                       <div class="well well-sm">
 			      The discord channel where the live announcements will be posted!<br />
-			      If empty or misspelled, <strong>Mee6</strong> will post the announcements on the server default channel.
                       </div>
 		      <label class="control-label" for="announcement_msg">Announcement message</label>
                       <input class="form-control input-lg" name="announcement_msg" value="{{announcement_msg}}" type="text" id="announcement_msg">
                       <div class="well well-sm">
-			      <strong>Tips:</strong> Use {streamer} for the streamer name.
+			            <strong>Tips:</strong> Use {streamer} for the streamer name.
                       </div>
-
-		      <div class="streamers_wrap">
-                            <label class="control-label" for="streamestreamer">Streamers Channels <button class="btn btn-primary btn-xs add_streamer">Add</button></label>
-                            {%for streamer in streamers %}
-                            <div class="input-group">
-                                <input type="text" class="form-control" value="{{streamer}}" placeholder="Streamer Channel" name="streamers[]" type="text" id="streamers">
-                                <span class="input-group-btn">
-                                  <button class="btn btn-default remove_field">Remove</button>
-                                </span>
-                             </div>
-                             {% endfor %}
-                      </div>
-                      <script>
-                      $(document).ready(function() {
-                            var max_fields      = 100; //maximum input boxes allowed
-                            var wrapper         = $(".streamers_wrap"); //Fields wrapper
-                            var add_button      = $(".add_streamer"); //Add button ID
-
-                            var x = 1; //initlal text box count
-                            $(add_button).click(function(e){ //on add input button click
-                                e.preventDefault();
-                                if(x < max_fields){ //max input box allowed
-                                    x++; //text box increment
-                                    $(wrapper).append('<div class="input-group"><input type="text" class="form-control" placeholder="Streamer Name" name="streamers[]" type="text"><span class="input-group-btn"><button class="btn btn-default remove_field">Remove</button></span></div>'); //add input box
-                                }
-                            });
-
-                            $(wrapper).on("click",".remove_field", function(e){ //user click on remove text
-
-                                e.preventDefault(); $(this).parent('').parent('').remove(); x--;
-                            })
-                        });
-                      </script>
-                      <br />
+                      <h3>Streamers Channels</h3>
+                      <input type="text" data-role="tagsinput" value="{{streamers}}"
+                                                               name="streamers" data-role="tagsinput"><br /><br />
                       <button type="submit" class="btn btn-primary">Update</button>
                     </div>
                 </form>
@@ -63,4 +35,5 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/typeahead.js/0.11.1/typeahead.bundle.min.js"></script>
 {% endblock %}

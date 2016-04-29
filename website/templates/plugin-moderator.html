@@ -47,46 +47,43 @@
 			      <strong>!unmute @someone</strong> Unmute <em>@someone</em> in the currect channel.
                       </div>
 		      <h3>Banned Words</h3>
-		      <input class="form-control input-lg" name="banned_words" value="{{banned_words}}" type="text" id="banned_words">
+		      
+		      <input class="form-control input-lg" name="banned_words" data-role="tagsinput" value="{{banned_words}}" type="text" id="banned_words">
 		      <div class="well well-sm">
 			      <strong>Put comma separated banned words! </strong> <br />
 			      <strong>Example: </strong>f*ck,sh*t,wh*re
 	 	      </div>
 
+
 		      <h3>Moderator Roles</h3>
-                      <div class="roles_wrap">
+		      <input type="text" data-role="tagsinput" name="moderator_roles" class="moderator_roles"/><br />
+		      <div class="well well-sm">
+			      These roles, can actually use the moderator commands.
+			</div>
+                          <script>
+				$(function() {
+				var roles = new Bloodhound({
+                                    datumTokenizer: Bloodhound.tokenizers.obj.whitespace('name'),
+                                    queryTokenizer: Bloodhound.tokenizers.whitespace,
+                                    local: {{guild_roles|tojson|safe}}
+                                });
+                                roles.initialize();
 
-                            <label class="control-label" for="roles">Roles <button class="btn btn-primary btn-xs add_role">Add</button></label>
-                            {%for role in roles %}
-                            <div class="input-group">
-                                <input type="text" class="form-control" placeholder="Role Name" name="roles[]" value="{{role}}" type="text" id="roles">
-                                <span class="input-group-btn">
-                                  <button class="btn btn-default remove_field">Remove</button>
-                                </span>
-                             </div>
-                             {%endfor%}
-                      </div>
-                      <script>
-                      $(document).ready(function() {
-                            var max_fields      = 100; //maximum input boxes allowed
-                            var wrapper         = $(".roles_wrap"); //Fields wrapper
-                            var add_button      = $(".add_role"); //Add button ID
-
-                            var x = 1; //initlal text box count
-                            $(add_button).click(function(e){ //on add input button click
-                                e.preventDefault();
-                                if(x < max_fields){ //max input box allowed
-                                    x++; //text box increment
-                                    $(wrapper).append('<div class="input-group"><input type="text" class="form-control" placeholder="Role Name" name="roles[]" type="text"><span class="input-group-btn"><button class="btn btn-default remove_field">Remove</button></span></div>'); //add input box
-                                }
-                            });
-
-                            $(wrapper).on("click",".remove_field", function(e){ //user click on remove text
-
-                                e.preventDefault(); $(this).parent('').parent('').remove(); x--;
-                            })
-                        });
-                      </script>
+                                var elt = $('.moderator_roles');
+                                elt.tagsinput({
+                                    itemValue: 'id',
+                                    itemText: 'name',
+                                    typeaheadjs: {
+                                        name: 'roles',
+                                        displayKey: 'name',
+                                        source: roles.ttAdapter()
+                                    }
+                                });
+                                {% for role in moderator_roles %}
+                                    elt.tagsinput('add', {{role|tojson|safe}});
+                                {% endfor %}
+				});
+                          </script>
                       <br />
                       <button type="submit" class="btn btn-primary">Update</button>
                     </div>
@@ -96,4 +93,5 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/typeahead.js/0.11.1/typeahead.bundle.min.js"></script>
 {% endblock %}

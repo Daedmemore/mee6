@@ -10,50 +10,54 @@
                 <form id="music" method="POST" action="{{url_for('update_music', server_id=server['id'])}}">
                     <div class="form-group">
                       <input name=_csrf_token type=hidden value="{{ csrf }}">
+		      <h3>Moderator Roles</h3>  
+			  <input type="text" data-role="tagsinput" name="allowed_roles" class="roles"/><br />
                       <div class="well well-sm">
-			      By default, only the <strong>server managers</strong> can use the Music plugin.<br />You can allow some roles to use it.<br />To allow every member, just add the <strong>@everyone</strong> role.
+			      By default, only the <strong>server managers</strong> can use the plugin.<br />
+			      If you want to give the access to every member, just add @everyone.
 		      </div>
+                          <script>
+				$(function() {
+				var roles = new Bloodhound({
+                                    datumTokenizer: Bloodhound.tokenizers.obj.whitespace('name'),
+                                    queryTokenizer: Bloodhound.tokenizers.whitespace,
+                                    local: {{guild_roles|tojson|safe}}
+                                });
+                                roles.initialize();
 
-                      <div class="allowed_roles_wrap">
-
-                            <label class="control-label" for="allowed-roles">Allowed Roles <button class="btn btn-primary btn-xs add_allowed_role">Add</button></label>
-                            {%for role in allowed_roles %}
-                            <div class="input-group">
-                                <input type="text" class="form-control" value="{{role}}" placeholder="Role Name" name="allowed_roles[]" type="text" id="allowed-roles">
-                                <span class="input-group-btn">
-                                  <button class="btn btn-default remove_field">Remove</button>
-                                </span>
-                             </div>
-                             {% endfor %}
-                      </div>
-                      <script>
-                      $(document).ready(function() {
-                            var max_fields      = 100; //maximum input boxes allowed
-                            var wrapper         = $(".allowed_roles_wrap"); //Fields wrapper
-                            var add_button      = $(".add_allowed_role"); //Add button ID
-
-                            var x = 1; //initlal text box count
-                            $(add_button).click(function(e){ //on add input button click
-                                e.preventDefault();
-                                if(x < max_fields){ //max input box allowed
-                                    x++; //text box increment
-                                    $(wrapper).append('<div class="input-group"><input type="text" class="form-control" placeholder="Role Name" name="allowed_roles[]" type="text"><span class="input-group-btn"><button class="btn btn-default remove_field">Remove</button></span></div>'); //add input box
-                                }
-                            });
-
-                            $(wrapper).on("click",".remove_field", function(e){ //user click on remove text
-
-                                e.preventDefault(); $(this).parent('').parent('').remove(); x--;
-                            })
-                        });
-                      </script>
+                                var elt = $('.roles');
+                                elt.tagsinput({
+                                    itemValue: 'id',
+                                    itemText: 'name',
+                                    typeaheadjs: {
+                                        name: 'roles',
+                                        displayKey: 'name',
+                                        source: roles.ttAdapter()
+                                    }
+                                });
+                                {% for role in allowed_roles %}
+                                    elt.tagsinput('add', {{role|tojson|safe}});
+                                {% endfor %}
+				});
+                          </script>
                       <br />
                       <button type="submit" class="btn btn-primary">Update</button>
                     </div>
-                </form>
+		</form><br />
+		<h4>Commands</h4>
+			<div class="well well-sm">
+			      <strong>!join</strong> Makes <strong>Mee6</strong> join your voice channel<br />
+			      <strong>!add <song_name></strong> Adds a song to the queue<br />
+			      <strong>!playlist</strong> Shows the music queue<br />
+                  <strong>!play</strong> Plays the next song in the queue<br />
+                  <strong>!next</strong> Goes to the next song<br />
+			      <strong>!stop</strong> Stops the music<br />
+			      <strong>!leave</strong> Leave the channel
+			</div>
             </div>
 
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/typeahead.js/0.11.1/typeahead.bundle.min.js"></script>
 {% endblock %}
