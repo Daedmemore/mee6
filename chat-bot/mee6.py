@@ -60,7 +60,6 @@ class Mee6(discord.Client):
     async def add_all_servers(self):
         """Syncing all the servers to the DB"""
         log.debug('Syncing servers and db')
-        await self.db.redis.delete('servers')
         for server in self.servers:
             log.debug('Adding server {}\'s id to db'.format(server.id))
             await self.db.redis.sadd('servers', server.id)
@@ -71,23 +70,16 @@ class Mee6(discord.Client):
 
     async def on_server_join(self, server):
         """Called when joining a new server"""
-        # Dispatching to global plugins
-        for plugin in self.plugins:
-            if plugin.is_global:
-                self.loop.create_task(plugin.on_server_join(server))
-
-    async def on_server_available(self, server):
-        """ Called when server available
-
-        Adds the server to the db
-        Also adds its name and it's icon if it has one
-        """
         log.info('Joined {} server : {} !'.format(server.owner.name, server.name))
         log.debug('Adding server {}\'s id to db'.format(server.id))
         await self.db.redis.sadd('servers', server.id)
         await self.db.redis.set('server:{}:name'.format(server.id), server.name)
         if server.icon:
             await self.db.redis.set('server:{}:icon'.format(server.id), server.icon)
+        # Dispatching to global plugins
+        for plugin in self.plugins:
+            if plugin.is_global:
+                self.loop.create_task(plugin.on_server_join(server))
 
     async def on_server_remove(self, server):
         """Called when leaving or kicked from a server
