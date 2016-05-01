@@ -1,26 +1,26 @@
 {% extends 'full-page.html' %}
 {% block content %}
-<div class="jumbotron home-jumbotron">
-  <div class="container">
-    <div class="row" style="display: flex;align-items: center;">
-        <div class="col-md-6  col-sm-12 text-center" >
-		<img src="{{url_for('static', filename='img/meeseeks.png')}}">
-            <h3>Introducing <strong>Mee6</strong> the <img src="{{ url_for('static', filename='img/discord-logo.svg') }}" class="discord-logo2"> bot </h3>
-            <h1>Add some !skill</h1>
-            <h2>to your <img src="{{ url_for('static', filename='img/discord.svg') }}" class="discord-logo1"> server</h2>
-            <p>
-                <a href="{{url_for('login')}}" class="btn btn-home btn-lg">Add to Discord</a>
-            </p>
-        </div>
-	<div class="col-md-6 hidden-sm hidden-xs">
-		<video preload="true" autoplay loop style="height:80vh; border-radius: 10px;">
-			<source src="{{url_for('static', filename='mee6.mp4')}}" type="video/mp4">
-			<source src="{{url_for('static', filename='mee6.webm')}}" type="video/webm; codecs=vp8, vorbis">
-			<source type="video/ogg; codecs=theora, vorbis" src="{{url_for('static', filename='mee6.ogg')}}">
-			    Your browser does not support the video tag.
-		</video>
-        </div>
-    </div>
-  </div>
-</div>
+	<div class="jumbotron home-jumbotron">
+		<div class="container">
+			<div class="row" style="display: flex;align-items: center;">
+				<div class="col-md-6  col-sm-12 text-center" >
+					<img src="{{url_for('static', filename='img/meeseeks.png')}}">
+					<h3>Introducing <strong>Mee6</strong> the <img src="{{ url_for('static', filename='img/discord-logo.svg') }}" class="discord-logo2"> bot </h3>
+					<h1>Add some !skill</h1>
+					<h2>to your <img src="{{ url_for('static', filename='img/discord.svg') }}" class="discord-logo1"> server</h2>
+					<p>
+					<a href="{{url_for('login')}}" class="btn btn-home btn-lg">Add to Discord</a>
+					</p>
+				</div>
+				<div class="col-md-6 hidden-sm hidden-xs">
+					<video preload="true" autoplay loop style="height:80vh; border-radius: 10px;">
+						<source src="{{url_for('static', filename='mee6.mp4')}}" type="video/mp4">
+						<source src="{{url_for('static', filename='mee6.webm')}}" type="video/webm; codecs=vp8, vorbis">
+						<source type="video/ogg; codecs=theora, vorbis" src="{{url_for('static', filename='mee6.ogg')}}">
+						Your browser does not support the video tag.
+					</video>
+				</div>
+			</div>
+		</div>
+	</div>
 {% endblock %}

@@ -39,11 +39,7 @@ class Levels(Plugin):
 
     async def is_ban(self, member):
         storage = await self.get_storage(member.server)
-        banned_members = await storage.smembers('banned_members')
         banned_roles = await storage.smembers('banned_roles')
-        if member.name in banned_members:
-            return True
-
         for role in member.roles:
             if role.name in banned_roles or role.id in banned_roles:
                 return True

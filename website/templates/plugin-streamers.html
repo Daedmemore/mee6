@@ -1,39 +1,39 @@
 {% extends 'dash_base.html' %}
 {% block dash_content %}
-    <div class="container">
-        <div class="row">
-            {% include 'sidebar.html' %}
-            {% set csrf =  csrf_token() %}
-            <div class="col-md-8">
-                <h3>Twitch <a href="?disable=1" class="btn btn-warning btn-xs">Disable</a></h3>
-                {% include 'flash.html' %}
-                <form id="streamers" method="POST" action="{{url_for('update_streamers', server_id=server['id'])}}">
-                    <div class="form-group">
-		      <input name=_csrf_token type=hidden value="{{ csrf }}">
-                      <label class="control-label" for="announcement_channel">Announcement Channel</label>
-		      <select class="form-control input-lg" id="announcement_channel" name="announcement_channel">
-			{% for channel in guild_channels %}
-			   <option value="{{channel.id}}"{%if channel.id == announcement_channel.id%} selected{%endif%}>#{{channel.name}}</option>
-			{% endfor %}
-		      </select>
-                      <div class="well well-sm">
-			      The discord channel where the live announcements will be posted!<br />
-                      </div>
-		      <label class="control-label" for="announcement_msg">Announcement message</label>
-                      <input class="form-control input-lg" name="announcement_msg" value="{{announcement_msg}}" type="text" id="announcement_msg">
-                      <div class="well well-sm">
-			            <strong>Tips:</strong> Use {streamer} for the streamer name.
-                      </div>
-                      <h3>Streamers Channels</h3>
-                      <input type="text" data-role="tagsinput" value="{{streamers}}"
-                                                               name="streamers" data-role="tagsinput"><br /><br />
-                      <button type="submit" class="btn btn-primary">Update</button>
-                    </div>
-                </form>
-            </div>
+	<div class="container">
+		<div class="row">
+			{% include 'sidebar.html' %}
+			{% set csrf =  csrf_token() %}
+				<div class="col-md-8">
+					<h3>Twitch <a href="?disable=1" class="btn btn-warning btn-xs">Disable</a></h3>
+					{% include 'flash.html' %}
+					<form id="streamers" method="POST" action="{{url_for('update_streamers', server_id=server['id'])}}">
+						<div class="form-group">
+							<input name=_csrf_token type=hidden value="{{ csrf }}">
+							<label class="control-label" for="announcement_channel">Announcement Channel</label>
+							<select class="form-control input-lg" id="announcement_channel" name="announcement_channel">
+								{% for channel in guild_channels %}
+									<option value="{{channel.id}}"{%if channel.id == announcement_channel.id%} selected{%endif%}>#{{channel.name}}</option>
+								{% endfor %}
+							</select>
+							<div class="well well-sm">
+								The discord channel where the live announcements will be posted!<br />
+							</div>
+							<label class="control-label" for="announcement_msg">Announcement message</label>
+							<input class="form-control input-lg" name="announcement_msg" value="{{announcement_msg}}" type="text" id="announcement_msg">
+							<div class="well well-sm">
+								<strong>Tips:</strong> Use {streamer} for the streamer name.
+							</div>
+							<h3>Streamers Channels</h3>
+							<input type="text" data-role="tagsinput" value="{{streamers}}"
+							name="streamers" data-role="tagsinput"><br /><br />
+							<button type="submit" class="btn btn-primary">Update</button>
+						</div>
+					</form>
+				</div>
 
-        </div>
-    </div>
+		</div>
+	</div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/typeahead.js/0.11.1/typeahead.bundle.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/typeahead.js/0.11.1/typeahead.bundle.min.js"></script>
 {% endblock %}

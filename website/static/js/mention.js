@@ -1,6 +1,9 @@
 /*jslint forin: true */
 
 ;(function($) {
+  function escapeRegExp(str) {
+      return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
+  }
     $.fn.extend({
         mention: function(options) {
             this.opts = {
@@ -53,7 +56,7 @@
                             if ( !! usernames) {
                                 for (j = 0; j < usernames.length; j++) {
                                     var username = (usernames[j].substring(1)).toLowerCase(),
-                                        re = new RegExp(settings.delimiter + item, "g"),
+                                        re = new RegExp(settings.delimiter + escapeRegExp(item), "g"),
                                         used = ((this.query.toLowerCase()).match(re));
 
                                     if (item.indexOf(username) != -1 && used === null) {

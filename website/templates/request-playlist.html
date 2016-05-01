@@ -1,38 +1,38 @@
 {% extends 'dash_base.html' %}
 {% block dash_content %}
-    <div class="container">
-        <div class="row">
-            <div class="col-md-12">
-                <h1>Playlist</h1>
-                <div class="list-group">
-                {% for music in playlist %}
-                <div class="list-group-item">
-                  <div class="row">
-                      <div class="col-md-7 col-sm-7 col-xs-7">
-			<strong><h4>
-                          <strong>#{{loop.index}}</strong> 
-                    <img src="{{music.thumbnails}}" class="img-thumbnail">
-					{{music.title}} {% if is_admin %}<small><a href="{{url_for('delete_request', server_id=server.id, pos=loop.index-1)}}">[delete]</a></small>{% endif %} 
-		      </h4>
-                      </div>
-		      <div class="col-md-5 col-sm-5 col-xs-5">
-			<h4>
-			<em> added by </em>
-                        {% if music.addedBy.avatar!="None" %}
-			<img src="{{ music.addedBy.avatar }}" style="height:100px;" class="img-circle">
-                        {%else%}
-			<img src="{{url_for('static', filename='img/no_logo.png')}}"
-	style="width:10%;" class="img-circle"> 
-                        {%endif%}{{ music.addedBy.name }}<small>#{{music.addedBy.discriminator}}</small>
-			</h4></strong>
-		     </div>
-                  </div>
-                </div>
-                {% endfor %}
-              </div>
-            </div>
+	<div class="container">
+		<div class="row">
+			<div class="col-md-12">
+				<h1>Playlist</h1>
+				<div class="list-group">
+					{% for music in playlist %}
+						<div class="list-group-item">
+							<div class="row">
+								<div class="col-md-7 col-sm-7 col-xs-7">
+									<strong><h4>
+											<strong>#{{loop.index}}</strong> 
+											<img src="{{music.thumbnails}}" class="img-thumbnail">
+											{{music.title}} {% if is_admin %}<small><a href="{{url_for('delete_request', server_id=server.id, pos=loop.index-1)}}">[delete]</a></small>{% endif %} 
+										</h4>
+								</div>
+								<div class="col-md-5 col-sm-5 col-xs-5">
+									<h4>
+										<em> added by </em>
+										{% if music.addedBy.avatar!="None" %}
+											<img src="{{ music.addedBy.avatar }}" style="height:100px;" class="img-circle">
+										{%else%}
+											<img src="{{url_for('static', filename='img/no_logo.png')}}"
+											style="width:10%;" class="img-circle"> 
+										{%endif%}{{ music.addedBy.name }}<small>#{{music.addedBy.discriminator}}</small>
+									</h4></strong>
+								</div>
+							</div>
+						</div>
+					{% endfor %}
+				</div>
+			</div>
 
-        </div>
-    </div>
+		</div>
+	</div>
 
 {% endblock %}

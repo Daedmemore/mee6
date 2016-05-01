@@ -1,21 +1,21 @@
 {% extends 'dash_base.html' %}
 {% block dash_content %}
-    <div class="container">
-        <div class="row">
-            {% include 'sidebar.html' %}
+	<div class="container">
+		<div class="row">
+			{% include 'sidebar.html' %}
 
-            <div class="col-md-8">
-                <h3>Github <a href="?disable=1" class="btn btn-warning btn-xs">Disable</a></h3>
-                {% include 'flash.html' %}
-                <center>
-                <p>
-                    <img src="https://assets-cdn.github.com/images/modules/logos_page/GitHub-Mark.png">
-                    <h1>Type <strong>!git</strong> for a link <br> to Cookie's github repo !</h1>
-                </p>
-                </center>
-            </div>
+			<div class="col-md-8">
+				<h3>Github <a href="?disable=1" class="btn btn-warning btn-xs">Disable</a></h3>
+				{% include 'flash.html' %}
+				<center>
+					<p>
+					<img src="https://assets-cdn.github.com/images/modules/logos_page/GitHub-Mark.png">
+					<h1>Type <strong>!git</strong> for a link <br> to Cookie's github repo !</h1>
+					</p>
+				</center>
+			</div>
 
-        </div>
-    </div>
+		</div>
+	</div>
 
 {% endblock %}

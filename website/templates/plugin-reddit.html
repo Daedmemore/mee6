@@ -1,33 +1,33 @@
 {% extends 'dash_base.html' %}
 {% block dash_content %}
-    <div class="container">
-        <div class="row">
-            {% include 'sidebar.html' %}
-            {% set csrf =  csrf_token() %}
-            <div class="col-md-8">
-                <h3>Reddit <a href="?disable=1" class="btn btn-warning btn-xs">Disable</a></h3>
-                {% include 'flash.html' %}
-                <form id="reddit" method="POST" action="{{url_for('update_reddit', server_id=server['id'])}}">
-                    <div class="form-group">
-		      <input name=_csrf_token type=hidden value="{{ csrf }}">
-		      <label class="control-label" for="announcement_channel">Display Channel</label>
-		      <select class="form-control input-lg" id="display_channel" name="display_channel">
-			{% for channel in guild_channels %}
-			   <option value="{{channel.id}}"{%if channel.id == display_channel.id%} selected{%endif%}>#{{channel.name}}</option>
-			{% endfor %}
-		      </select>
-                      <div class="well well-sm">
-			      The discord channel where the new subreddits posts will be displayed!<br />
-                      </div>
-                      <label class="control-label" for="subreddits">Subreddits</label> 
-                      <input type="text" data-role="tagsinput" value="{{subs}}"
-                                                               name="subs" data-role="tagsinput"><br /><br />
-                      <button type="submit" class="btn btn-primary">Update</button>
-                    </div>
-                </form>
-            </div>
+	<div class="container">
+		<div class="row">
+			{% include 'sidebar.html' %}
+			{% set csrf =  csrf_token() %}
+				<div class="col-md-8">
+					<h3>Reddit <a href="?disable=1" class="btn btn-warning btn-xs">Disable</a></h3>
+					{% include 'flash.html' %}
+					<form id="reddit" method="POST" action="{{url_for('update_reddit', server_id=server['id'])}}">
+						<div class="form-group">
+							<input name=_csrf_token type=hidden value="{{ csrf }}">
+							<label class="control-label" for="announcement_channel">Display Channel</label>
+							<select class="form-control input-lg" id="display_channel" name="display_channel">
+								{% for channel in guild_channels %}
+									<option value="{{channel.id}}"{%if channel.id == display_channel.id%} selected{%endif%}>#{{channel.name}}</option>
+								{% endfor %}
+							</select>
+							<div class="well well-sm">
+								The discord channel where the new subreddits posts will be displayed!<br />
+							</div>
+							<label class="control-label" for="subreddits">Subreddits</label> 
+							<input type="text" data-role="tagsinput" value="{{subs}}"
+							name="subs" data-role="tagsinput"><br /><br />
+							<button type="submit" class="btn btn-primary">Update</button>
+						</div>
+					</form>
+				</div>
 
-        </div>
-    </div>
+		</div>
+	</div>
 
 {% endblock %}

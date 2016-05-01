@@ -1,63 +1,63 @@
 {% extends 'dash_base.html' %}
 {% block dash_content %}
-    <div class="container">
-        <div class="row">
-            {% include 'sidebar.html' %}
-            {% set csrf =  csrf_token() %}
-            <div class="col-md-8">
-                <h3>Music <a href="?disable=1" class="btn btn-warning btn-xs">Disable</a></h3>
-                {% include 'flash.html' %}
-                <form id="music" method="POST" action="{{url_for('update_music', server_id=server['id'])}}">
-                    <div class="form-group">
-                      <input name=_csrf_token type=hidden value="{{ csrf }}">
-		      <h3>Moderator Roles</h3>  
-			  <input type="text" data-role="tagsinput" name="allowed_roles" class="roles"/><br />
-                      <div class="well well-sm">
-			      By default, only the <strong>server managers</strong> can use the plugin.<br />
-			      If you want to give the access to every member, just add @everyone.
-		      </div>
-                          <script>
-				$(function() {
-				var roles = new Bloodhound({
-                                    datumTokenizer: Bloodhound.tokenizers.obj.whitespace('name'),
-                                    queryTokenizer: Bloodhound.tokenizers.whitespace,
-                                    local: {{guild_roles|tojson|safe}}
-                                });
-                                roles.initialize();
+	<div class="container">
+		<div class="row">
+			{% include 'sidebar.html' %}
+			{% set csrf =  csrf_token() %}
+				<div class="col-md-8">
+					<h3>Music <a href="?disable=1" class="btn btn-warning btn-xs">Disable</a></h3>
+					{% include 'flash.html' %}
+					<form id="music" method="POST" action="{{url_for('update_music', server_id=server['id'])}}">
+						<div class="form-group">
+							<input name=_csrf_token type=hidden value="{{ csrf }}">
+							<h3>Moderator Roles</h3>  
+							<input type="text" data-role="tagsinput" name="allowed_roles" class="roles"/><br />
+							<div class="well well-sm">
+								By default, only the <strong>server managers</strong> can use the plugin.<br />
+								If you want to give the access to every member, just add @everyone.
+							</div>
+							<script>
+$(function() {
+	var roles = new Bloodhound({
+		datumTokenizer: Bloodhound.tokenizers.obj.whitespace('name'),
+		queryTokenizer: Bloodhound.tokenizers.whitespace,
+		local: {{guild_roles|tojson|safe}}
+	});
+	roles.initialize();
 
-                                var elt = $('.roles');
-                                elt.tagsinput({
-                                    itemValue: 'id',
-                                    itemText: 'name',
-                                    typeaheadjs: {
-                                        name: 'roles',
-                                        displayKey: 'name',
-                                        source: roles.ttAdapter()
-                                    }
-                                });
-                                {% for role in allowed_roles %}
-                                    elt.tagsinput('add', {{role|tojson|safe}});
-                                {% endfor %}
-				});
-                          </script>
-                      <br />
-                      <button type="submit" class="btn btn-primary">Update</button>
-                    </div>
-		</form><br />
-		<h4>Commands</h4>
-			<div class="well well-sm">
-			      <strong>!join</strong> Makes <strong>Mee6</strong> join your voice channel<br />
-			      <strong>!add <song_name></strong> Adds a song to the queue<br />
-			      <strong>!playlist</strong> Shows the music queue<br />
-                  <strong>!play</strong> Plays the next song in the queue<br />
-                  <strong>!next</strong> Goes to the next song<br />
-			      <strong>!stop</strong> Stops the music<br />
-			      <strong>!leave</strong> Leave the channel
-			</div>
-            </div>
+	var elt = $('.roles');
+	elt.tagsinput({
+		itemValue: 'id',
+		itemText: 'name',
+		typeaheadjs: {
+			name: 'roles',
+			displayKey: 'name',
+			source: roles.ttAdapter()
+		}
+	});
+	{% for role in allowed_roles %}
+		elt.tagsinput('add', {{role|tojson|safe}});
+	{% endfor %}
+});
+							</script>
+							<br />
+							<button type="submit" class="btn btn-primary">Update</button>
+						</div>
+					</form><br />
+					<h4>Commands</h4>
+					<div class="well well-sm">
+						<strong>!join</strong> Makes <strong>Mee6</strong> join your voice channel<br />
+						<strong>!add <song_name></strong> Adds a song to the queue<br />
+						<strong>!playlist</strong> Shows the music queue<br />
+						<strong>!play</strong> Plays the next song in the queue<br />
+						<strong>!next</strong> Goes to the next song<br />
+						<strong>!stop</strong> Stops the music<br />
+						<strong>!leave</strong> Leave the channel
+					</div>
+				</div>
 
-        </div>
-    </div>
+		</div>
+	</div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/typeahead.js/0.11.1/typeahead.bundle.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/typeahead.js/0.11.1/typeahead.bundle.min.js"></script>
 {% endblock %}

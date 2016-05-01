@@ -1,36 +1,36 @@
 {% extends 'dash_base.html' %}
 {% block dash_content %}
-    <div class="container">
-        <div class="row">
-            {% include 'sidebar.html' %}
-            {% set csrf =  csrf_token() %}
-            <div class="col-md-8">
-                <h3>Welcome <a href="?disable=1" class="btn btn-warning btn-xs">Disable</a></h3>
-                {% include 'flash.html' %}
-                <form id="welcome" method="POST" action="{{url_for('update_welcome', server_id=server['id'])}}">
-                    <div class="form-group">
-                      <input name=_csrf_token type=hidden value="{{ csrf }}">
-                      <label class="control-label" for="welcome_message">Welcome message</label>
-                      <input class="form-control input-lg" name="welcome_message" value="{{welcome_message}}" ype="text" id="welcome_message">
-                      <div class="well well-sm">
-                          <strong>Tips: </strong> <i>{user}</i> refers to the new member, <i>{server}</i> to your server name.
-                      </div>
-                      <label class="control-label" for="channel_name">Welcome channel</label>
-                      <select class="input-lg form-control" name="channel">
-                        {% for channel in guild_channels %}
-                           <option value="{{channel.id}}"{%if channel.id == welcome_channel.id%} selected{%endif%}>#{{channel.name}}</option>
-                        {% endfor %}
-                      </select>
-                      <div class="well well-sm">
-                          <strong>Warning: </strong>Mee6 should have the permission to post there.
-                      </div>
-                      <button type="submit" class="btn btn-primary">Update</button>
-                    </div>
-                </form>
-            </div>
+	<div class="container">
+		<div class="row">
+			{% include 'sidebar.html' %}
+			{% set csrf =  csrf_token() %}
+				<div class="col-md-8">
+					<h3>Welcome <a href="?disable=1" class="btn btn-warning btn-xs">Disable</a></h3>
+					{% include 'flash.html' %}
+					<form id="welcome" method="POST" action="{{url_for('update_welcome', server_id=server['id'])}}">
+						<div class="form-group">
+							<input name=_csrf_token type=hidden value="{{ csrf }}">
+							<label class="control-label" for="welcome_message">Welcome message</label>
+							<input class="form-control input-lg" name="welcome_message" value="{{welcome_message}}" ype="text" id="welcome_message">
+							<div class="well well-sm">
+								<strong>Tips: </strong> <i>{user}</i> refers to the new member, <i>{server}</i> to your server name.
+							</div>
+							<label class="control-label" for="channel_name">Welcome channel</label>
+							<select class="input-lg form-control" name="channel">
+								{% for channel in guild_channels %}
+									<option value="{{channel.id}}"{%if channel.id == welcome_channel.id%} selected{%endif%}>#{{channel.name}}</option>
+								{% endfor %}
+							</select>
+							<div class="well well-sm">
+								<strong>Warning: </strong>Mee6 should have the permission to post there.
+							</div>
+							<button type="submit" class="btn btn-primary">Update</button>
+						</div>
+					</form>
+				</div>
 
-        </div>
-    </div>
+		</div>
+	</div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/typeahead.js/0.11.1/typeahead.bundle.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/typeahead.js/0.11.1/typeahead.bundle.min.js"></script>
 {% endblock %}

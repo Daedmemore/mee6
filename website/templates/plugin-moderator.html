@@ -1,97 +1,97 @@
 {% extends 'dash_base.html' %}
 {% block dash_content %}
-    <div class="container">
-        <div class="row">
-            {% include 'sidebar.html' %}
-            {% set csrf =  csrf_token() %}
-            <div class="col-md-8">
-                <h3>Moderator <a href="?disable=1" class="btn btn-warning btn-xs">Disable</a></h3>
-                {% include 'flash.html' %}
-                <form id="levels" method="POST" action="{{url_for('update_moderator', server_id=server['id'])}}">
-                    <div class="form-group">
-                      <input name=_csrf_token type=hidden value="{{ csrf }}">
-		      <h3>!Clear
-                      <div class="checkbox">
-                        <label>
-                          <input type="checkbox" name="clear" {% if clear %} checked {% endif %}> Enable/Disable
-                        </label>
-                      </div>
-		      </h3>
-                      <div class="well well-sm">
-			      <strong>Usage: </strong> <br />
-			      <strong>!clear @someone</strong> Delete the messages of <em>@someone</em> in the last 100 messages.<br />
-			      <strong>!clear xx</strong> Delete the xx last messages. Maximum of 100.<br />
-                      </div>
-		      <!--<h3>!Slowmode
-                      <div class="checkbox">
-                        <label>
-                          <input type="checkbox" name="slowmode" {% if slowmode %} checked {% endif %}> Enable/Disable
-                        </label>
-                      </div>
-		      </h3>
-                      <div class="well well-sm">
-			      <strong>Usage: </strong> <br />
-			      <strong>!slowmode xx</strong> Enables the slowmode for <em>xx</em> seconds.<br />
-			      <strong>!slowoff</strong> Disable the slowmode.
-			      </div>-->
-		      <h3>!Mute
-                      <div class="checkbox">
-                        <label>
-                          <input type="checkbox" name="mute" {% if mute %} checked {% endif %}> Enable/Disable
-                        </label>
-                      </div>
-		      </h3>
-                      <div class="well well-sm">
-			      <strong>Usage: </strong> <br />
-			      <strong>!mute @someone</strong> Mute <em>@someone</em> in the current channel.<br />
-			      <strong>!unmute @someone</strong> Unmute <em>@someone</em> in the currect channel.
-                      </div>
-		      <h3>Banned Words</h3>
-		      
-		      <input class="form-control input-lg" name="banned_words" data-role="tagsinput" value="{{banned_words}}" type="text" id="banned_words">
-		      <div class="well well-sm">
-			      <strong>Put comma separated banned words! </strong> <br />
-			      <strong>Example: </strong>f*ck,sh*t,wh*re
-	 	      </div>
+	<div class="container">
+		<div class="row">
+			{% include 'sidebar.html' %}
+			{% set csrf =  csrf_token() %}
+				<div class="col-md-8">
+					<h3>Moderator <a href="?disable=1" class="btn btn-warning btn-xs">Disable</a></h3>
+					{% include 'flash.html' %}
+					<form id="levels" method="POST" action="{{url_for('update_moderator', server_id=server['id'])}}">
+						<div class="form-group">
+							<input name=_csrf_token type=hidden value="{{ csrf }}">
+							<h3>!Clear
+								<div class="checkbox">
+									<label>
+										<input type="checkbox" name="clear" {% if clear %} checked {% endif %}> Enable/Disable
+									</label>
+								</div>
+							</h3>
+							<div class="well well-sm">
+								<strong>Usage: </strong> <br />
+								<strong>!clear @someone</strong> Delete the messages of <em>@someone</em> in the last 100 messages.<br />
+								<strong>!clear xx</strong> Delete the xx last messages. Maximum of 100.<br />
+							</div>
+							<!--<h3>!Slowmode
+				 <div class="checkbox">
+				 <label>
+				 <input type="checkbox" name="slowmode" {% if slowmode %} checked {% endif %}> Enable/Disable
+				 </label>
+				 </div>
+				 </h3>
+				 <div class="well well-sm">
+				 <strong>Usage: </strong> <br />
+				 <strong>!slowmode xx</strong> Enables the slowmode for <em>xx</em> seconds.<br />
+				 <strong>!slowoff</strong> Disable the slowmode.
+				 </div>-->
+				 <h3>!Mute
+					 <div class="checkbox">
+						 <label>
+							 <input type="checkbox" name="mute" {% if mute %} checked {% endif %}> Enable/Disable
+						 </label>
+					 </div>
+				 </h3>
+				 <div class="well well-sm">
+					 <strong>Usage: </strong> <br />
+					 <strong>!mute @someone</strong> Mute <em>@someone</em> in the current channel.<br />
+					 <strong>!unmute @someone</strong> Unmute <em>@someone</em> in the currect channel.
+				 </div>
+				 <h3>Banned Words</h3>
+
+				 <input class="form-control input-lg" name="banned_words" data-role="tagsinput" value="{{banned_words}}" type="text" id="banned_words">
+				 <div class="well well-sm">
+					 <strong>Put comma separated banned words! </strong> <br />
+					 <strong>Example: </strong>f*ck,sh*t,wh*re
+				 </div>
 
 
-		      <h3>Moderator Roles</h3>
-		      <input type="text" data-role="tagsinput" name="moderator_roles" class="moderator_roles"/><br />
-		      <div class="well well-sm">
-			      These roles, can actually use the moderator commands.
-			</div>
-                          <script>
-				$(function() {
-				var roles = new Bloodhound({
-                                    datumTokenizer: Bloodhound.tokenizers.obj.whitespace('name'),
-                                    queryTokenizer: Bloodhound.tokenizers.whitespace,
-                                    local: {{guild_roles|tojson|safe}}
-                                });
-                                roles.initialize();
+				 <h3>Moderator Roles</h3>
+				 <input type="text" data-role="tagsinput" name="moderator_roles" class="moderator_roles"/><br />
+				 <div class="well well-sm">
+					 These roles, can actually use the moderator commands.
+				 </div>
+				 <script>
+$(function() {
+	var roles = new Bloodhound({
+		datumTokenizer: Bloodhound.tokenizers.obj.whitespace('name'),
+		queryTokenizer: Bloodhound.tokenizers.whitespace,
+		local: {{guild_roles|tojson|safe}}
+	});
+	roles.initialize();
 
-                                var elt = $('.moderator_roles');
-                                elt.tagsinput({
-                                    itemValue: 'id',
-                                    itemText: 'name',
-                                    typeaheadjs: {
-                                        name: 'roles',
-                                        displayKey: 'name',
-                                        source: roles.ttAdapter()
-                                    }
-                                });
-                                {% for role in moderator_roles %}
-                                    elt.tagsinput('add', {{role|tojson|safe}});
-                                {% endfor %}
-				});
-                          </script>
-                      <br />
-                      <button type="submit" class="btn btn-primary">Update</button>
-                    </div>
-                </form>
-            </div>
+	var elt = $('.moderator_roles');
+	elt.tagsinput({
+		itemValue: 'id',
+		itemText: 'name',
+		typeaheadjs: {
+			name: 'roles',
+			displayKey: 'name',
+			source: roles.ttAdapter()
+		}
+	});
+	{% for role in moderator_roles %}
+		elt.tagsinput('add', {{role|tojson|safe}});
+	{% endfor %}
+});
+				 </script>
+				 <br />
+				 <button type="submit" class="btn btn-primary">Update</button>
+						</div>
+					</form>
+				</div>
 
-        </div>
-    </div>
+		</div>
+	</div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/typeahead.js/0.11.1/typeahead.bundle.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/typeahead.js/0.11.1/typeahead.bundle.min.js"></script>
 {% endblock %}

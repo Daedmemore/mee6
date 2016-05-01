@@ -45,12 +45,12 @@ let isAllowed = (member, cb) => {
     return;
   }
   redisClient.smembers('Music.'+member.guild.id+':allowed_roles', (err, roles) => {
-    if (roles.indexOf("@everyone") > -1){
+    if (roles.indexOf("@everyone") > -1 || roles.indexOf(member.guild.id) > -1){
       cb(true);
       return;
     }
     for (var role of member.roles){
-      if (roles.indexOf(role.name) > -1 || roles.indexOf(role.id) > -1){
+      if (roles.indexOf(role.name) > -1 || roles.indexOf(role.id) > -1) {
         cb(true);
         return;
       }

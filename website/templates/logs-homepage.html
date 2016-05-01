@@ -1,42 +1,42 @@
 {% extends 'dash_base.html' %}
 {% block dash_content %}
-    <div class="container">
-        <div class="row">
-            <div class="col-md-3">
-                <h1>How it works</h1>
-                <div class="panel panel-primary">
-                <div class="panel-body">
-			Here you can find all the <strong>logs</strong> of the server.<br /><br />
-			<strong>Logs</strong> are sorted by <strong>date</strong> and by <strong>channel</strong>.<br /><br />
-				<strong>Mee6</strong> is using UTC time format.<br / ><br />
-			For the <strong>nerdiest</strong> of you, you can have this list in json format. ;)
-                </div>
-              </div>
-            </div>
-            <div class="col-md-9">
-		    <h1>Logs <a href="?json" class="btn btn-default btn-xs">json</a></h1>
-		<div class="panel-group" id="accordion">
-		{% for item in payload %}
-		<div class="panel panel-default">
-		  <div class="panel-heading">
-		    <h4 class="pannel-title">
-			    <a data-toggle="collapse" data-parent="#accordion" href="#{{item.dt}}" class="collapsed">{{item.dt}}</a>
-		    </h4>
-		  </div>
-		  <div id="{{item.dt}}" class="panel-collapse collapse" style="height:0px;">
-		   <div class="panel-body">
-		    {% for channel in item.channels %}
-                      <a href="{{ url_for('message_logs', server_id=server.id, dt=item.dt, channel=channel)}}">#{{channel}}</a><br/>
-		    {% endfor %}
-		   </div>
-		  </div>
+	<div class="container">
+		<div class="row">
+			<div class="col-md-3">
+				<h1>How it works</h1>
+				<div class="panel panel-primary">
+					<div class="panel-body">
+						Here you can find all the <strong>logs</strong> of the server.<br /><br />
+						<strong>Logs</strong> are sorted by <strong>date</strong> and by <strong>channel</strong>.<br /><br />
+						<strong>Mee6</strong> is using UTC time format.<br / ><br />
+						For the <strong>nerdiest</strong> of you, you can have this list in json format. ;)
+					</div>
+				</div>
+			</div>
+			<div class="col-md-9">
+				<h1>Logs <a href="?json" class="btn btn-default btn-xs">json</a></h1>
+				<div class="panel-group" id="accordion">
+					{% for item in payload %}
+						<div class="panel panel-default">
+							<div class="panel-heading">
+								<h4 class="pannel-title">
+									<a data-toggle="collapse" data-parent="#accordion" href="#{{item.dt}}" class="collapsed">{{item.dt}}</a>
+								</h4>
+							</div>
+							<div id="{{item.dt}}" class="panel-collapse collapse" style="height:0px;">
+								<div class="panel-body">
+									{% for channel in item.channels %}
+										<a href="{{ url_for('message_logs', server_id=server.id, dt=item.dt, channel=channel)}}">#{{channel}}</a><br/>
+									{% endfor %}
+								</div>
+							</div>
+						</div>
+					{% endfor %}
+				</div>
+			</div>
 		</div>
-		{% endfor %}
-		</div>
-              </div>
-            </div>
 
-        </div>
-    </div>
+	</div>
+	</div>
 
 {% endblock %}

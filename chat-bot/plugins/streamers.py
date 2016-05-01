@@ -44,8 +44,8 @@ class Streamers(Plugin):
             with aiohttp.ClientSession() as session:
                 async with session.get(url.format(",".join(streamers[i*100:(i+1)*100]))) as resp:
                     result = await resp.json()
-                    live_streamers_list = map(lambda s:(s['channel']['name'], s),
-                                                   result['streams'])
+                    live_streamers_list = list(map(lambda s:(s['channel']['name'], s),
+                                                   result['streams']))
                     live_streamers_str = ",".join(map(lambda s:s[0], live_streamers_list))
                     logs.debug("Getting streams info of: "+live_streamers_str)
                     _live_streamers = {name: info for name, info in live_streamers_list}
@@ -57,7 +57,7 @@ class Streamers(Plugin):
         # Check if plugin enabled
         enabled_plugins = await self.mee6.get_plugins(server)
         if self not in enabled_plugins:
-           return
+            return
         storage = await self.get_storage(server)
         streamers = await storage.smembers('streamers')
         for streamer in streamers:
@@ -89,7 +89,6 @@ class Streamers(Plugin):
                         server.channels,
                         id = a_c
                     ) or server
-
                 msg = await self.mee6.send_message(announcement_channel, announcement_msg)
                 # Mark as announcement
                 if not msg:
