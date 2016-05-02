@@ -50,6 +50,7 @@ def get_user_from_token(token):
 
     guilds = discord.get(API_BASE_URL + '/users/@me/guilds')
 
+    db.sadd('users', user['id'])
     db.hmset(
         'user:{}'.format(user['id']),
         {
@@ -67,6 +68,8 @@ def get_guilds_from_user(user):
         'user:{}'.format(user['id']),
         'guilds'
     )[0]
+    if not guilds:
+        return []
     return json.loads(guilds)
 
 def get_user_from_id(user_id):
@@ -600,6 +603,16 @@ def reset_player(server_id, player_id):
     db.delete('Levels.{}:player:{}:lvl'.format(server_id, player_id))
     db.srem('Levels.{}:players'.format(server_id), player_id)
     return redirect(url_for('levels', server_id=server_id))
+
+@app.route('/levels/reset_all/<int:server_id>')
+@plugin_method
+def reset_all_players(server_id): 
+    for player_id in db.smembers('Levels.{}:players'.format(server_id)):
+        db.delete('Levels.{}:player:{}:xp'.format(server_id, player_id))
+        db.delete('Levels.{}:player:{}:lvl'.format(server_id, player_id))
+        db.srem('Levels.{}:players'.format(server_id), player_id)
+    return redirect(url_for('levels', server_id=server_id))
+
 
 """
     Welcome Plugin

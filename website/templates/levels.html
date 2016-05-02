@@ -13,7 +13,10 @@
 				</div>
 			</div>
 			<div class="col-md-9">
-				<h1>Leaderboard</h1>
+				<h1>Leaderboard {% if is_admin %}
+						<small><a class="btn btn-warning btn-xs reset-all" href="{{url_for('reset_all_players', server_id=server.id)}}">RESET ALL</a></small>
+					{% endif %}
+				</h1>
 				<div class="list-group">
 					{% for player in players %}
 						<div class="list-group-item">
@@ -46,6 +49,10 @@
 								</div>
 							</div>
 						</div>
+					{% else %}
+						<center>
+							<h3>There's no one to display... YET! ;)</h3>
+						</center>
 					{% endfor %}
 				</div>
 			</div>
@@ -60,6 +67,14 @@ $('.reset').click(function(e) {
 		confirmation && document.location.assign($link.attr('href'));
 	});
 });
+$('.reset-all').click(function(e) {
+	e.preventDefault();
+	var $link = $(this);
+	bootbox.confirm("Do you really want to reset EVERYONE's xp? EVERYONE will lose their levels :'(", function (confirmation) {
+		confirmation && document.location.assign($link.attr('href'));
+	});
+});
+
 	</script>
 
 {% endblock %}
