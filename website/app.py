@@ -1,20 +1,20 @@
-from flask import Flask, session, request, url_for, render_template, redirect, \
-jsonify, make_response, flash, abort, Response
-from flask.views import View
 import os
-from re import sub
 import requests
 import pymongo
-from functools import wraps
-from requests_oauthlib import OAuth2Session
 import redis
 import json
 import binascii
-from math import floor
 import copy
 import datetime
 import logging
 import functools
+from math import floor
+from re import sub
+from functools import wraps
+from requests_oauthlib import OAuth2Session
+from flask import Flask, session, request, url_for, render_template, redirect, \
+jsonify, make_response, flash, abort, Response
+from flask.views import View
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY", "qdaopdsjDJ9u&çed&ndlnad&pjéà&jdndqld")
@@ -147,12 +147,6 @@ def manual_refresh():
 @app.route('/')
 def index():
     return render_template('index.html')
-
-@app.route('/loop/<int:duration>')
-def loop(duration):
-    import time
-    time.sleep(duration)
-    return jsonify({'slept_for': duration})
 
 @app.route('/about')
 def about():
