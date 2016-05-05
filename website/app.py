@@ -9,12 +9,13 @@ import datetime
 import logging
 import functools
 from math import floor
-from re import sub
+import re
 from functools import wraps
 from requests_oauthlib import OAuth2Session
 from flask import Flask, session, request, url_for, render_template, redirect, \
 jsonify, make_response, flash, abort, Response
 from flask.views import View
+from itsdangerous import JSONWebSignatureSerializer
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY", "qdaopdsjDJ9u&çed&ndlnad&pjéà&jdndqld")
@@ -25,71 +26,83 @@ OAUTH2_CLIENT_SECRET = os.environ['OAUTH2_CLIENT_SECRET']
 OAUTH2_REDIRECT_URI = os.environ.get('OAUTH2_REDIRECT_URI', 'http://localhost:5000/confirm_login')
 API_BASE_URL = os.environ.get('API_BASE_URL', 'https://discordapp.com/api')
 AUTHORIZATION_BASE_URL = API_BASE_URL + '/oauth2/authorize'
+AVATAR_BASE_URL = "https://cdn.discordapp.com/avatars/"
+ICON_BASE_URL = "https://cdn.discordapp.com/icons/"
+DEFAULT_AVATAR = "https://discordapp.com/assets/1cbd08c76f8af6dddce02c5138971129.png"
 DOMAIN = os.environ.get('VIRTUAL_HOST', 'localhost:5000')
 TOKEN_URL = API_BASE_URL + '/oauth2/token'
 MEE6_TOKEN = os.getenv('MEE6_TOKEN')
 MONGO_URL = os.environ.get('MONGO_URL')
 FLASK_DEBUG = os.getenv('FLASK_DEBUG')
+
+
 db = redis.Redis.from_url(REDIS_URL, decode_responses=True)
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 mongo = pymongo.MongoClient(MONGO_URL)
 
-def get_user_from_token(token):
+"""
+    JINJA2 Filters
+"""
+
+@app.template_filter('avatar')
+def avatar(user):
+    if user.get('avatar'):
+        return AVATAR_BASE_URL + user['id'] + '/' + user['avatar'] + '.jpg'
+    else:
+        return DEFAULT_AVATAR
+
+"""
+    Discord DATA logic
+"""
+
+def get_user(token):
+    # If it's an api_token, go fetch the discord_token
+    if token.get('api_key'):
+        discord_token_str = db.get('user:{}:discord_token'.format(token['user_id']))
+        token = json.loads(discord_token_str)
+
     discord = make_session(token=token)
 
-    user = discord.get(API_BASE_URL + '/users/@me').json()
-    if user['avatar']:
-        user['avatar'] = "https://cdn.discordapp.com/avatars/{}/{}.jpg".format(
-            user['id'],
-            user['avatar']
-        )
-    else:
-        user['avatar'] = url_for('static', filename='img/no_logo.png')
+    req = discord.get(API_BASE_URL + '/users/@me')
+    if req.status_code != 200:
+        abort(req.status_code)
 
-    session['user'] = copy.deepcopy(user)
+    user = req.json()
+    # Saving that to the session for easy template access
+    session['user'] = user
 
-    guilds = discord.get(API_BASE_URL + '/users/@me/guilds')
-
+    # Saving that to the db
     db.sadd('users', user['id'])
-    db.hmset(
-        'user:{}'.format(user['id']),
-        {
-            'username': user['username'],
-            'discriminator': user['discriminator'],
-            'avatar': user['avatar'],
-            'guilds': guilds.text
-        }
-    )
-
+    db.set('user:{}'.format(user['id']), json.dumps(user))
     return user
 
-def get_guilds_from_user(user):
-    guilds = db.hmget(
-        'user:{}'.format(user['id']),
-        'guilds'
-    )[0]
-    if not guilds:
-        return []
-    return json.loads(guilds)
+def get_user_guilds(token):
+    # If it's an api_token, go fetch the discord_token
+    if token.get('api_key'):
+        user_id = token['user_id']
+        discord_token_str = db.get('user:{}:discord_token'.format(token['user_id']))
+        token = json.loads(discord_token_str)
+    else:
+        user_id = get_user(token)['id']
 
-def get_user_from_id(user_id):
-    user = db.hmget(
-        'user:{}'.format(user_id),
-        'username',
-        'discriminator',
-        'avatar',
-    )
-    if user:
-        return {
-            'id': user_id,
-            'username': user[0],
-            'discriminator': user[1],
-            'avatar': user[2],
-        }
+    discord = make_session(token=token)
 
-    return None
+    req = discord.get(API_BASE_URL + '/users/@me/guilds')
+    if req.status_code != 200:
+        abort(req.status_code)
 
-# CSRF
+    guilds = req.json()
+    # Saving that to the db
+    db.set('user:{}:guilds'.format(user_id), json.dumps(guilds))
+    return guilds
+
+def get_user_managed_servers(user, guilds):
+    return list(filter(lambda g: (g['owner'] is True) or bool(( int(g['permissions'])>> 5) & 1), guilds))
+
+"""
+    CRSF Security
+"""
+
 @app.before_request
 def csrf_protect():
     if request.method == "POST":
@@ -104,19 +117,14 @@ def generate_csrf_token():
 
 app.jinja_env.globals['csrf_token'] = generate_csrf_token
 
-def token_updater(token):
-    session.permanent = True
-    session['oauth2_token'] = token
+"""
+    AUTH logic
+"""
 
-def require_auth(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        token = session.get('oauth2_token')
-        if token is None:
-            return redirect(url_for('login'))
-
-        return f(*args, **kwargs)
-    return wrapper
+def token_updater(discord_token):
+    user = get_user(discord_token)
+    # Save the new discord_token
+    db.set('user:{}:discord_token'.format(user['id']), json.dumps(discord_token))
 
 def make_session(token=None, state=None, scope=None):
     return OAuth2Session(
@@ -130,19 +138,78 @@ def make_session(token=None, state=None, scope=None):
             'client_secret': OAUTH2_CLIENT_SECRET,
         },
         auto_refresh_url=TOKEN_URL,
-        token_updater=token_updater)
+        token_updater=token_updater
+    )
 
-@app.route("/manual_refresh", methods=["GET"])
-def manual_refresh():
-    """Refreshing an OAuth 2 token using a refresh token."""
-    token = session['oauth2_token']
-    extra = {
-        'client_id': OAUTH2_CLIENT_ID,
-        'client_secret': OAUTH2_CLIENT_SECRET
+@app.route('/login')
+def login():
+    scope = ['identify', 'guilds']
+    discord = make_session(scope=scope)
+    authorization_url, state = discord.authorization_url(
+        AUTHORIZATION_BASE_URL,
+        access_type="offline"
+    )
+    session['oauth2_state'] = state
+    return redirect(authorization_url)
+
+@app.route('/confirm_login')
+def confirm_login():
+    # Check for state and for 0 errors
+    state = session.get('oauth2_state')
+    if not state or request.values.get('error'):
+        return redirect(url_for('index'))
+
+    # Fetch token
+    discord = make_session(state=state)
+    discord_token = discord.fetch_token(
+        TOKEN_URL,
+        client_secret=OAUTH2_CLIENT_SECRET,
+        authorization_response=request.url)
+    if not discord_token:
+        return redirect(url_for('index'))
+
+    # Fetch the user
+    user = get_user(discord_token)
+    # Generate api_key from user_id
+    serializer = JSONWebSignatureSerializer(app.config['SECRET_KEY'])
+    api_key = str(serializer.dumps({'user_id': user['id']}))
+    # Store api_key
+    db.set('user:{}:api_key'.format(user['id']), api_key)
+    # Store token
+    db.set('user:{}:discord_token'.format(user['id']), json.dumps(discord_token))
+    # Store api_token in client session
+    api_token = {
+        'api_key': api_key,
+        'user_id': user['id']
     }
-    google = OAuth2Session(OAUTH2_CLIENT_ID, token=token)
-    session['oauth2_token'] = google.refresh_token(TOKEN_URL, **extra)
-    return jsonify(session['oauth2_token'])
+    session.permanent = True
+    session['api_token'] = api_token
+    return redirect(url_for('select_server'))
+
+def require_auth(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        # Does the user have an api_token?
+        api_token = session.get('api_token')
+        if api_token is None:
+            return redirect(url_for('login'))
+
+        # Does his api_key is in the db?
+        user_api_key = db.get('user:{}:api_key'.format(api_token['user_id']))
+        if user_api_key != api_token['api_key']:
+            return redirect(url_for('login'))
+
+        return f(*args, **kwargs)
+    return wrapper
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('index'))
+
+"""
+    STATIC pages
+"""
 
 @app.route('/')
 def index():
@@ -160,45 +227,12 @@ def donate():
 def thanks():
     return render_template('thanks.html')
 
-@app.route('/logout')
-def logout():
-    session.pop('oauth2_token')
-    session.pop('user')
-
-    return redirect(url_for('index'))
-
 @app.route('/debug_token')
 def debug_token():
-    return jsonify(session.get('oauth2_token'))
-
-@app.route('/login')
-def login():
-    user = session.get('user')
-    if user is not None:
-        return redirect(url_for('select_server'))
-
-    scope = 'identify guilds'.split()
-    discord = make_session(scope=scope)
-    authorization_url, state = discord.authorization_url(AUTHORIZATION_BASE_URL,
-                                                        access_type="offline")
-    session['oauth2_state'] = state
-    return redirect(authorization_url)
-
-@app.route('/confirm_login')
-def confirm_login():
-    if request.values.get('error'):
-        return redirect(url_for('index'))
-    discord = make_session(state=session.get('oauth2_state'))
-    token = discord.fetch_token(
-        TOKEN_URL,
-        client_secret=OAUTH2_CLIENT_SECRET,
-        authorization_response=request.url)
-    session.permanent = True
-    session['oauth2_token'] = token
-    return redirect(url_for('select_server'))
-
-def get_user_servers(user, guilds):
-    return list(filter(lambda g: (g['owner'] is True) or bool(( int(g['permissions'])>> 5) & 1), guilds))
+    if not session.get('api_token'):
+        return jsonify({'error': 'no api_token'})
+    token = db.get('user:{}:discord_token'.format(session['api_token']['user_id']))
+    return token
 
 @app.route('/servers')
 @require_auth
@@ -207,9 +241,12 @@ def select_server():
     if guild_id:
         return redirect(url_for('dashboard', server_id=int(guild_id)))
 
-    user = get_user_from_token(session['oauth2_token'])
-    guilds = get_guilds_from_user(user)
-    user_servers = sorted(get_user_servers(user, guilds), key=lambda s: s['name'].lower())
+    user = get_user(session['api_token'])
+    guilds = get_user_guilds(session['api_token'])
+    user_servers = sorted(
+        get_user_managed_servers(user, guilds),
+        key=lambda s: s['name'].lower()
+    )
     return render_template('select-server.html', user=user, user_servers=user_servers)
 
 def server_check(f):
@@ -219,13 +256,14 @@ def server_check(f):
         server_ids = db.smembers('servers')
 
         if str(server_id) not in server_ids:
-            url = "https://discordapp.com/oauth2/authorize?&client_id={}"\
-                "&scope=bot&permissions={}&guild_id={}&response_type=code&redirect_uri=http://{}/servers".format(
-                OAUTH2_CLIENT_ID,
-                '66321471',
-                server_id,
-                DOMAIN
-                )
+            url =   "https://discordapp.com/oauth2/authorize?&client_id={}"\
+                    "&scope=bot&permissions={}&guild_id={}&response_type=code"\
+                    "&redirect_uri=http://{}/servers".format(
+                        OAUTH2_CLIENT_ID,
+                        '66321471',
+                        server_id,
+                        DOMAIN
+                    )
             return redirect(url)
 
         return f(*args, **kwargs)
@@ -235,16 +273,17 @@ def require_bot_admin(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
         server_id = kwargs.get('server_id')
-        user = get_user_from_token(session['oauth2_token'])
-        guilds = get_guilds_from_user(user)
-        user_servers = get_user_servers(user, guilds)
-        if str(server_id) not in list(map(lambda g: g['id'], user_servers)):
+        user = get_user(session['api_token'])
+        guilds = get_user_guilds(session['api_token'])
+        user_servers = get_user_managed_servers(user, guilds)
+        if str(server_id) not in map(lambda g: g['id'], user_servers):
             return redirect(url_for('select_server'))
 
         return f(*args, **kwargs)
     return wrapper
 
 def my_dash(f):
+    # tfw when elixir's |>...
     return require_auth(require_bot_admin(server_check(f)))
 
 def plugin_method(f):
@@ -257,22 +296,25 @@ def plugin_page(plugin_name, early_backers=False):
         @server_check
         @wraps(f)
         def wrapper(server_id):
-            user = session.get('user')
+            user = get_user(session['api_token'])
             if early_backers:
-                is_early_backer = user['id'] in db.smembers('early_backers')
-                if not is_early_backer:
+                not_early_backer = user['id'] not in db.smembers('early_backers')
+                if not_early_backer:
                     return redirect(url_for('donate'))
+
             disable = request.args.get('disable')
             if disable:
                 db.srem('plugins:{}'.format(server_id), plugin_name)
                 return redirect(url_for('dashboard', server_id=server_id))
+
             db.sadd('plugins:{}'.format(server_id), plugin_name)
-            servers = get_guilds_from_user(user)
+            servers = get_user_guilds(session['api_token'])
             server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
             enabled_plugins = db.smembers('plugins:{}'.format(server_id))
 
             ignored = db.get('user:{}:ignored'.format(user['id']))
             notification = not ignored
+
             return render_template(
                 f.__name__.replace('_', '-') + '.html',
                 server=server,
@@ -287,8 +329,8 @@ def plugin_page(plugin_name, early_backers=False):
 @app.route('/dashboard/<int:server_id>')
 @my_dash
 def dashboard(server_id):
-    user = get_user_from_token(session['oauth2_token'])
-    guilds = get_guilds_from_user(user)
+    user = get_user(session['api_token'])
+    guilds = get_user_guilds(session['api_token'])
     server = list(filter(lambda g: g['id']==str(server_id), guilds))[0]
     enabled_plugins = db.smembers('plugins:{}'.format(server_id))
     ignored = db.get('user:{}:ignored'.format(user['id']))
@@ -302,7 +344,7 @@ def dashboard(server_id):
 @app.route('/dashboard/notification/<int:server_id>')
 @my_dash
 def notification(server_id):
-    user = session['user']
+    user = get_user(session['api_token'])
     ignored = db.get('user:{}:ignored'.format(user['id']))
     if ignored:
         db.delete('user:{}:ignored'.format(user['id']))
@@ -370,7 +412,7 @@ def plugin_commands(server_id):
         return key
     for cmd in commands_names:
         message = db.get('Commands.{}:command:{}'.format(server_id, cmd))
-        message = sub(pattern, repl, message)
+        message = re.sub(pattern, repl, message)
         command = {
             'name': cmd,
             'message': message
@@ -416,11 +458,10 @@ def add_command(server_id):
             return val
         return key
 
-    cmd_message = sub(pattern, repl, cmd_message)
+    cmd_message = re.sub(pattern, repl, cmd_message)
 
     edit = cmd_name in db.smembers('Commands.{}:commands'.format(server_id))
 
-    import re
     cb = url_for('plugin_commands', server_id=server_id)
     if len(cmd_name) == 0 or len(cmd_name) > 15:
         flash('A command name should be between 1 and 15 character long !', 'danger')
@@ -495,7 +536,7 @@ def plugin_levels(server_id):
 @app.route('/dashboard/<int:server_id>/levels/update', methods=['POST'])
 @plugin_method
 def update_levels(server_id):
-    guilds = get_guilds_from_user(session['user'])
+    guilds = get_user_guilds(session['api_token'])
     server = list(filter(lambda g: g['id']==str(server_id), guilds))[0]
 
     banned_roles = request.form.get('banned_roles').split(',')
@@ -538,8 +579,11 @@ def update_levels(server_id):
 @app.route('/levels/<int:server_id>')
 def levels(server_id):
     is_admin = False
-    if session.get('user'):
-        user_servers = get_user_servers(session['user'], get_guilds_from_user(session['user']))
+    if session.get('api_token'):
+        user_servers = get_user_managed_servers(
+            get_user(session['api_token']),
+            get_user_guilds(session['api_token'])
+        )
         is_admin = str(server_id) in list(map(lambda s:s['id'], user_servers))
 
     server_check = str(server_id) in db.smembers('servers')
@@ -588,7 +632,14 @@ def levels(server_id):
             'id': _players[i+5]
         }
         players.append(player)
-    return render_template('levels.html', small_title="Leaderboard", is_admin=is_admin, players=players, server=server, title="{} leaderboard - Mee6 bot".format(server['name']))
+    return render_template(
+        'levels.html',
+        small_title="Leaderboard",
+        is_admin=is_admin,
+        players=players,
+        server=server,
+        title="{} leaderboard - Mee6 bot".format(server['name'])
+    )
 
 @app.route('/levels/reset/<int:server_id>/<int:player_id>')
 @plugin_method
@@ -600,13 +651,12 @@ def reset_player(server_id, player_id):
 
 @app.route('/levels/reset_all/<int:server_id>')
 @plugin_method
-def reset_all_players(server_id): 
+def reset_all_players(server_id):
     for player_id in db.smembers('Levels.{}:players'.format(server_id)):
         db.delete('Levels.{}:player:{}:xp'.format(server_id, player_id))
         db.delete('Levels.{}:player:{}:lvl'.format(server_id, player_id))
         db.srem('Levels.{}:players'.format(server_id), player_id)
     return redirect(url_for('levels', server_id=server_id))
-
 
 """
     Welcome Plugin
@@ -637,7 +687,7 @@ def plugin_welcome(server_id):
 @app.route('/dashboard/<int:server_id>/welcome/update', methods=['POST'])
 @plugin_method
 def update_welcome(server_id):
-    servers = get_guilds_from_user(session['user'])
+    servers = get_user_guilds(session['api_token'])
     server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
 
     welcome_message = request.form.get('welcome_message')
@@ -687,9 +737,9 @@ def plugin_logs(server_id):
 def logs_homepage(server_id):
     json = request.args.get('json', None)
     servers = db.smembers('servers')
-    servers = [server for server in servers if 'Logs' in db.smembers('plugins:{}'.format(
-        server
-        ))]
+    servers = [server for server in servers
+               if 'Logs' in db.smembers('plugins:{}'.format(server))]
+
     if str(server_id) not in servers:
         return redirect(url_for('index'))
     server = {
@@ -799,7 +849,7 @@ def plugin_streamers(server_id):
 @app.route('/dashboard/<int:server_id>/update_streamers', methods=['POST'])
 @plugin_method
 def update_streamers(server_id):
-    servers = get_guilds_from_user(session['user'])
+    servers = get_user_guilds(session['api_token'])
     server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
     announcement_channel = request.form.get('announcement_channel')
     announcement_msg = request.form.get('announcement_msg')
@@ -843,7 +893,7 @@ def plugin_reddit(server_id):
 @app.route('/dashboard/<int:server_id>/update_reddit', methods=['POST'])
 @plugin_method
 def update_reddit(server_id):
-    servers = get_guilds_from_user(session['user'])
+    servers = get_user_guilds(session['api_token'])
     server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
     display_channel = request.form.get('display_channel')
 
@@ -887,7 +937,7 @@ def plugin_moderator(server_id):
 @app.route('/dashboard/<int:server_id>/update_moderator', methods=['POST'])
 @plugin_method
 def update_moderator(server_id):
-    servers = get_guilds_from_user(session['user'])
+    servers = get_user_guilds(session['api_token'])
     server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
 
     moderator_roles = request.form.get('moderator_roles').split(',')
@@ -957,8 +1007,11 @@ def request_playlist(server_id):
     playlist = list(map(lambda v: json.loads(v), playlist))
 
     is_admin = False
-    if session.get('user'):
-        user_servers = get_user_servers(session['user'], get_guilds_from_user(session['user']))
+    if session.get('api_token'):
+        user_servers = get_user_managed_servers(
+            get_user(session['api_token']),
+            get_user_guilds(session['api_token'])
+        )
         is_admin = str(server_id) in list(map(lambda s:s['id'], user_servers))
 
     server = {
@@ -988,4 +1041,5 @@ def setup_logging():
     app.logger.setLevel(logging.INFO)
 
 if __name__=='__main__':
+    app.debug = True
     app.run()
