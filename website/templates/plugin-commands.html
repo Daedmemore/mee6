@@ -16,15 +16,7 @@
 							<span class="input-group-addon">!</span>
 							<input class="form-control" type="text" name="cmd_name" placeholder="command">
 						</div><br />
-						<textarea class="form-control" name="cmd_message" id="cmd_message" placeholder="message"></textarea>
-						<script>
-$(function(){
-	$("#cmd_message").mention({
-		queryBy: ['name', 'username'],
-		users: {{guild_members|tojson|safe}}
-	});
-});
-						</script>
+						<textarea class="form-control cmd_message" name="cmd_message" id="cmd_message" placeholder="message"></textarea>
 						<br />
 						<center><a href="#" id="add" class="btn btn-success"><i class="fa fa-pencil"></i> Add</a></center>
 					</form>
@@ -50,7 +42,7 @@ $('#add').click(function(){
 										<form action="{{url_for('add_command', server_id=server.id)}}?edit=1" method='post' id="{{cmd['name'][1:]}}">
 											<input name=_csrf_token type=hidden value="{{ csrf }}">
 											<input name="cmd_name" type="hidden" value="{{cmd['name']}}">
-											<textarea class="form-control" name="cmd_message" rows="3" style="resize:vertical">{{cmd['message']}}</textarea>
+											<textarea class="form-control cmd_message" name="cmd_message" rows="3" style="resize:vertical">{{cmd['message']}}</textarea>
 										</form>
 									</td>
 									<td><a href="#" id="edit_{{cmd['name'][1:]}}" class="btn btn-warning btn-xs"><i class="fa fa-pencil"></i> Edit</a></td>
@@ -69,6 +61,14 @@ $('#edit_{{cmd['name'][1:]}}').click(function(){
 		</div>
 	</div>
 
+<script>
+$(function(){
+	$(".cmd_message").mention({
+		queryBy: ['name', 'username'],
+		users: {{guild_members|tojson|safe}}
+	});
+});
+</script>
 	<script src="{{url_for('static', filename='js/mention.js')}}"></script>
 	<script src="{{url_for('static', filename='js/bootstrap-typeahead.js')}}"></script>
 	<link href="{{url_for('static', filename='css/recommended-styles.css')}}" rel="stylesheet">
