@@ -31,7 +31,6 @@ class Stats(Plugin):
                 pass
 
     async def on_server_join(self, server):
-        await self.carbon_stats()
         for member in server.members:
             await self.db.redis.sadd('mee6:stats:users', member.id)
 
@@ -39,6 +38,7 @@ class Stats(Plugin):
         await self.db.redis.sadd('mee6:stats:channels', channel.id)
 
     async def on_message(self, message):
+        await self.db.redis.incr('mee6:stats:messages')
         if message.author.id == self.mee6.user.id:
             await self.db.redis.incr('mee6:stats:msg')
 
