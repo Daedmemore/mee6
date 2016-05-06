@@ -5,26 +5,6 @@ from plugin_manager import PluginManager
 from database import Db
 from time import time
 
-from plugins.commands import Commands
-from plugins.help import Help
-from plugins.levels import Levels
-from plugins.welcome import Welcome
-from plugins.animu import AnimuAndMango
-from plugins.logs import Logs
-from plugins.git import Git
-from plugins.streamers import Streamers
-from plugins.moderator import Moderator
-from plugins.early_backers import EarlyBackers
-from plugins.music import Music
-#from plugins.reddit import Reddit
-
-# Global plugins
-from plugins.basiclogs import BasicLogs
-from plugins.stats import Stats
-from plugins.changelog import ChangeLog
-from plugins.asciiwelcome import AsciiWelcome
-from plugins.mee6game import Mee6Game
-
 log = logging.getLogger('discord')
 
 class Mee6(discord.Client):
