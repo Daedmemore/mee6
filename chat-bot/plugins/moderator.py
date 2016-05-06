@@ -137,6 +137,7 @@ class Moderator(Plugin):
             return
 
         allow, deny = message.channel.overwrites_for(member)
+        allow.send_message = False
         deny.send_messages = True
         await self.mee6.edit_channel_permissions(
             message.channel,
@@ -161,10 +162,12 @@ class Moderator(Plugin):
 
         allow, deny = message.channel.overwrites_for(member)
         allow.send_messages = True
+        deny.send_messages = False
         await self.mee6.edit_channel_permissions(
             message.channel,
             member,
-            allow=allow
+            allow=allow,
+            deny=deny
         )
         await self.mee6.send_message(
             message.channel,
