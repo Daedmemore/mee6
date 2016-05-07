@@ -450,7 +450,7 @@ def add_command(server_id):
     for member in _members:
         key = member['user']['username']+'#'+member['user']['discriminator']
         members[key] = "<@{}>".format(member['user']['id'])
-    pattern = r'@(\w+( \w+)*#[0-9]{4})'
+    pattern = r'@(.*?#[0-9]{4})'
     def repl(k):
         key = k.groups()[0]
         val = members.get(key)
