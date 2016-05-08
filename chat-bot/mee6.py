@@ -4,6 +4,7 @@ import logging
 from plugin_manager import PluginManager
 from database import Db
 from time import time
+from datadog import DDAgent
 
 log = logging.getLogger('discord')
 
@@ -18,22 +19,23 @@ class Mee6(discord.Client):
         discord.Client.__init__(self, *args, **kwargs)
         self.redis_url = kwargs.get('redis_url')
         self.mongo_url = kwargs.get('mongo_url')
+        self.dd_agent_url = kwargs.get('dd_agent_url')
         self.db = Db(self.redis_url, self.mongo_url, self.loop)
         self.plugin_manager = PluginManager(self)
         self.plugin_manager.load_all()
         self.last_messages = []
+        self.stats = DDAgent(self.dd_agent_url)
+
 
     async def on_ready(self):
         """Called when the bot is ready.
 
-        Launched heartbeat, update_stats cron jobs
         Connects to the database
         Dispatched all the ready events
 
         """
         log.info('Connected to the database')
         await self.add_all_servers()
-        discord.utils.create_task(self.heartbeat(5), loop=self.loop)
         for plugin in self.plugins:
             self.loop.create_task(plugin.on_ready())
 
@@ -41,6 +43,7 @@ class Mee6(discord.Client):
         """Syncing all the servers to the DB"""
         log.debug('Syncing servers and db')
         for server in self.servers:
+            self.stats.set('mee6.servers', server.id)
             log.debug('Adding server {}\'s id to db'.format(server.id))
             await self.db.redis.sadd('servers', server.id)
             if server.name:
@@ -50,6 +53,10 @@ class Mee6(discord.Client):
 
     async def on_server_join(self, server):
         """Called when joining a new server"""
+
+        self.stats.set('mee6.servers', server.id)
+        self.stats.incr('mee6.server_join')
+
         log.info('Joined {} server : {} !'.format(server.owner.name, server.name))
         log.debug('Adding server {}\'s id to db'.format(server.id))
         await self.db.redis.sadd('servers', server.id)
@@ -71,35 +78,37 @@ class Mee6(discord.Client):
         log.debug('Removing server {}\'s id from the db'.format(server.id))
         await self.db.redis.srem('servers', server.id)
 
-    async def heartbeat(self, interval):
-        """Sends a heartbeat to the db every interval seconds"""
-        while self.is_logged_in:
-            await self.db.redis.set('heartbeat', 1, expire=interval)
-            await asyncio.sleep(0.9 * interval)
-
     async def get_plugins(self, server):
         plugins = await self.plugin_manager.get_all(server)
         return plugins
 
+    async def delete_messages(self, messages):
+        if messages is None or len(messages) == 0:
+            return
+
+        payload = {
+            'messages': [message.id for message in messages]
+        }
+
+        url = "{base}/channels/{channel_id}/messages/bulk_delete".format(
+            base=discord.endpoints.BASE,
+            channel_id=messages[0].channel.id
+        )
+
+        resp = await self._rate_limit_helper(
+            'delete_messages',
+            'POST',
+            url,
+            discord.utils.to_json(payload)
+        )
+        print(resp)
+
     async def send_message(self, *args, **kwargs):
-        counter = 0
-        msg = None
-        while counter!=3:
-            try:
-                msg = await super().send_message(*args, **kwargs)
-                counter=2
-            except discord.errors.HTTPException as e:
-                if e.response.status==502:
-                    log.info('502 HTTP Exception, retrying...')
-                else:
-                    log.info('{} HTTP Exception.'.format(
-                        e.response.status
-                    ))
-                    counter=2
-            counter+=1
-        return msg
+        self.stats.incr('mee6.sent_messages')
+        return await super().send_message(*args, **kwargs)
 
     async def on_message(self, message):
+        self.stats.incr('mee6.recv_messages')
         if message.channel.is_private:
             return
 

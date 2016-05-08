@@ -17,7 +17,6 @@ from plugins.music import Music
 
 # Global plugins
 from plugins.basiclogs import BasicLogs
-#from plugins.stats import Stats
 from plugins.changelog import ChangeLog
 from plugins.asciiwelcome import AsciiWelcome
 from plugins.mee6game import Mee6Game
@@ -28,10 +27,12 @@ mongo_url = os.getenv('MONGO_URL')
 mee6_debug = os.getenv('MEE6_DEBUG')
 shard = os.getenv('SHARD') or 0
 shard_count = os.getenv('SHARD_COUNT') or 1
+dd_agent_url = os.getenv('DD_AGENT_URL')
 if mee6_debug:
     logging.basicConfig(level=logging.DEBUG)
 else:
     logging.basicConfig(level=logging.INFO)
 
-bot = Mee6(shard_id=int(shard), shard_count=int(shard_count), redis_url=redis_url, mongo_url=mongo_url)
+bot = Mee6(shard_id=int(shard), shard_count=int(shard_count), redis_url=redis_url,
+           mongo_url=mongo_url, dd_agent_url=dd_agent_url)
 bot.run(token)
