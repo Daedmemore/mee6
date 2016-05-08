@@ -51,23 +51,22 @@ class Moderator(Plugin):
                 break
         return authorized
 
-
     @command(r'^!clear ([0-9]*)$', 'clear')
     async def clear_num(self, message, args):
         number = args[0]
+        to_delete = []
         messages = self.mee6.logs_from(
             message.channel,
-            limit=min(int(number)+1, 101)
+            limit=min(int(number), 100)
         )
-
-        counter = 0
         async for message in messages:
-            await self.mee6.delete_message(message)
-            counter += 1
+            to_delete.append(message)
+
+        await self.mee6.delete_messages(to_delete)
 
         confirm_message = await self.mee6.send_message(
             message.channel,
-            "`Deleted {} messages!` :thumbsup: ".format(counter-1)
+            "`Deleted {} messages!` :thumbsup: ".format(len(to_delete))
         )
         await asyncio.sleep(3)
 
@@ -85,47 +84,19 @@ class Moderator(Plugin):
         messages = self.mee6.logs_from(
             message.channel
         )
-        counter = 0
+        to_delete = []
         async for message in messages:
             if message.author == user:
-                await self.mee6.delete_message(message)
-                counter += 1
+                to_delete.append(message)
+
+        await self.mee6.delete_messages(to_delete)
 
         confirm = await self.mee6.send_message(
             message.channel,
-            "`Deleted {} messages!` :thumbsup: ".format(counter)
+            "`Deleted {} messages!` :thumbsup: ".format(len(to_delete))
         )
         await asyncio.sleep(3)
         await self.mee6.delete_message(confirm)
-
-    @command(r'!slowmode ([0-9]*)', 'slowmode')
-    async def slowmode(self, message, args):
-        num = args[0]
-        if num == "0":
-            await self.mee6.send_message(
-                message.channel,
-                "The slow mode interval cannot be 0 :wink:."
-            )
-            return
-
-        storage = await self.get_storage(message.server)
-        await storage.sadd(
-            'slowmode:channels',
-            message.channel.id
-        )
-        await storage.set(
-            'slowmode:{}:interval'.format(
-                message.channel.id
-            ),
-            num
-        )
-        await self.mee6.send_message(
-            message.channel,
-            "{} is now in :snail: mode. ({} seconds)".format(
-                message.channel.mention,
-                num
-            )
-        )
 
     @command(r'^!mute <@([0-9]*)>$', 'mute')
     async def mute(self, message, args):
@@ -174,6 +145,33 @@ class Moderator(Plugin):
             "{} is no longer :speak_no_evil: here! He/she can speak :monkey_face:!".format(member.mention)
         )
 
+    @command(r'!slowmode ([0-9]*)', 'slowmode')
+    async def slowmode(self, message, args):
+        num = int(args[0])
+        if num == 0:
+            await self.mee6.send_message(
+                message.channel,
+                "The slow mode interval cannot be 0 :wink:."
+            )
+            return
+        storage = await self.get_storage(message.server)
+        await storage.sadd(
+            'slowmode:channels',
+            message.channel.id
+        )
+        await storage.set(
+            'slowmode:{}:interval'.format(
+                message.channel.id
+            ),
+            num
+        )
+        await self.mee6.send_message(
+            message.channel,
+            "{} is now in :snail: mode. ({} seconds)".format(
+                message.channel.mention,
+                num
+            )
+        )
     @command(r'^!slowoff$', 'slowmode')
     async def slowoff(self, message, args):
         storage = await self.get_storage(message.server)
@@ -291,7 +289,7 @@ class Moderator(Plugin):
         await self.banned_words(message)
         await self.mute(message)
         await self.unmute(message)
-        #await self.slowmode(message)
-        #await self.slowoff(message)
-        #await self.slow_check(message)
+        await self.slowmode(message)
+        await self.slowoff(message)
+        await self.slow_check(message)
 
