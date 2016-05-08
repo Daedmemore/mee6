@@ -87,6 +87,7 @@ function playRemote(music, guild, voiceConnectionInfo) {
       if (!voiceConnectionInfo) return console.log("Voice not connected");
       var encoder = voiceConnectionInfo.voiceConnection.createExternalEncoder({
         type: "ffmpeg",
+        realtime: true,
         source: music.url,
         outputArgs: ["-compression_level", compression_level]
       });
