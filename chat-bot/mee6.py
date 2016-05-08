@@ -35,6 +35,13 @@ class Mee6(discord.Client):
 
         """
         log.info('Connected to the database')
+
+        if hasattr(self, 'shard_id'):
+            msg = 'Chat Shard {}/{} restarted'.format(self.shard_id, self.shard_count)
+        else:
+            msg = 'Mee6 Chat restarted'
+        self.stats.event(msg, 'Server count: {}'.format(len(self.servers)))
+
         await self.add_all_servers()
         for plugin in self.plugins:
             self.loop.create_task(plugin.on_ready())

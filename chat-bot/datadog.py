@@ -1,7 +1,18 @@
 import aiomeasures
 import logging
+from functools import wraps
 
 log = logging.getLogger('discord')
+
+def existance_check(f):
+    @wraps(f)
+    def wrapper(self, *args, **kwargs):
+        if self.agent:
+            func = getattr(self.agent, f.__name__)
+            return func(*args, **kwargs)
+        else:
+            log.debug('No Datadog agent found...')
+    return wrapper
 
 class DDAgent:
 
@@ -11,21 +22,18 @@ class DDAgent:
 
         if dd_agent_url:
             self.agent = aiomeasures.Datadog(dd_agent_url)
-
+    @existance_check
     def send(self, *args, **kwargs):
-        if self.agent:
-            return self.agent.send(*args, **kwargs)
-        else:
-            log.debug('No Datadog agent found...')
+        pass
 
+    @existance_check
     def set(self, *args, **kwargs):
-        if self.agent:
-            return self.agent.set(*args, **kwargs)
-        else:
-            log.debug('No Datadog agent found...')
+        pass
 
+    @existance_check
+    def event(self, *args, **kwargs):
+        pass
+
+    @existance_check
     def incr(self, *args, **kwargs):
-        if self.agent:
-            return self.agent.incr(*args, **kwargs)
-        else:
-            log.debug('No Datadog agent found...')
+        pass
