@@ -31,27 +31,29 @@ class Stats(Plugin):
                 pass
 
     async def on_server_join(self, server):
+        await self.mee6.stats.incr('mee6.server_join')
         for member in server.members:
-            await self.db.redis.sadd('mee6:stats:users', member.id)
 
     async def on_channel_create(self, channel):
         await self.db.redis.sadd('mee6:stats:channels', channel.id)
 
     async def on_message(self, message):
-        await self.db.redis.incr('mee6:stats:messages')
+        await self.mee6.stats.incr('mee6.received_messages')
         if message.author.id == self.mee6.user.id:
-            await self.db.redis.incr('mee6:stats:msg')
+            await self.mee6.stats.incr('mee6.sent_messages')
 
     async def on_ready(self):
         """Initialize stats"""
-        await self.carbon_stats()
+        #await self.carbon_stats()
 
         # Total members
         members = set(self.mee6.get_all_members())
         channels = set(self.mee6.get_all_channels())
-
+        servers = mee6.servers
+        for server in servers:
+            await self.mee6.stats.set('mee6.servers', server.id)
         for channel in channels:
-            await self.db.redis.sadd('mee6:stats:channels', channel.id)
+            await self.mee6.stats.set('mee6.channels', channel.id)
         for member in members:
-            await self.db.redis.sadd('mee6:stats:users', member.id)
+            await self.mee6.stats.set('mee6.users', member.id)
 
