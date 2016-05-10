@@ -265,10 +265,10 @@ class Moderator(Plugin):
             banned_words = banned_words.split(',')
         else:
             banned_words = []
-        for word in banned_words:
-            if word == "":
-                continue
-            if word.lower() in message.content.lower():
+
+        words = list(map(lambda w: w.lower(), message.content.split()))
+        for banned_word in banned_words:
+            if banned_word.lower() in words:
                 await self.mee6.delete_message(message)
                 msg = await self.mee6.send_message(
                     message.channel,
@@ -279,6 +279,9 @@ class Moderator(Plugin):
                 await asyncio.sleep(3)
                 await self.mee6.delete_message(msg)
                 return
+
+    async def on_message_edit(self, before, after):
+        await self.banned_words(after)
 
     async def on_message(self, message):
         if message.author.id == self.mee6.user.id:
