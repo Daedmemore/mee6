@@ -3,35 +3,18 @@
 
 ## What is it?
 Mee6 is a Discord bot that lets you easily add your own commands to your server
-through a user-friendly dashboard. But this is just one of the numerous plugins 
+through a user-friendly dashboard. But this is just one of the numerous features 
 of this bot.
 
 ## Testimonials (OMG OMG OMG...)
 ![Jason](http://i.imgur.com/sXXQy61.png)
 
-## Plugins
-
-- [x] Commands
-- [x] Levels
-- [x] Animu and Mango
-- [x] Github Repo
-- [x] Help Me!
-- [x] Twitch
-- [x] Reddit
-- [x] Welcome
-- [x] Logs
-- [ ] Music bot
-- [ ] Advanced Commands
-- [ ] Moderation
-- [ ] Your plugin here...
-
-If you want more information about those plugins just [add mee6 to your server](http://mee6.xyz).
-
 ## Mee6 uses and loves
 
 - [discord.py](https://github.com/Rapptz/discord.py)
+- [discord.ie](https://github.com/qeled/discordie)
 - [aioredis](https://github.com/aio-libs/aioredis)
-- [flask framework](http://flask.pocoo.org)
+- [flask](http://flask.pocoo.org)
 - [Docker](https://www.docker.com/)
 
 ## How to contribute !
