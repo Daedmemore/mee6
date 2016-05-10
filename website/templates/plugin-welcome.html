@@ -11,11 +11,21 @@
 						<div class="form-group">
 							<input name=_csrf_token type=hidden value="{{ csrf }}">
 							<label class="control-label" for="welcome_message">Welcome message</label>
-							<input class="form-control input-lg" name="welcome_message" value="{{welcome_message}}" ype="text" id="welcome_message">
+							<input class="form-control input-lg welcome_message" name="welcome_message" value="{{welcome_message}}" ype="text" id="welcome_message">
+							<div class="checkbox">
+								<label>
+									<input type="checkbox" name="private" {% if private %}checked{% endif %}> Send in Private Message
+								</label>
+							</div>
 							<div class="well well-sm">
 								<strong>Tips: </strong> <i>{user}</i> refers to the new member, <i>{server}</i> to your server name.
 							</div>
-							<label class="control-label" for="channel_name">Welcome channel</label>
+							<label class="control-label" for="gb_message">Good Bye message</label>
+							<input class="form-control input-lg gb_message" name="gb_message" value="{{gb_message}}" ype="text" id="gb_message">
+							<div class="well well-sm">
+								<strong>Tips: </strong> <i>{user}</i> refers to the new member, <i>{server}</i> to your server name.
+							</div>
+							<label class="control-label" for="channel_name">Welcome/Good-Bye channel</label>
 							<select class="input-lg form-control" name="channel">
 								{% for channel in guild_channels %}
 									<option value="{{channel.id}}"{%if channel.id == welcome_channel.id%} selected{%endif%}>#{{channel.name}}</option>
@@ -31,6 +41,21 @@
 
 		</div>
 	</div>
-
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/typeahead.js/0.11.1/typeahead.bundle.min.js"></script>
+<script>
+$(function(){
+	$(".welcome_message").mention({
+		queryBy: ['name', 'username'],
+		users: {{guild_members|tojson|safe}}
+	});
+});
+$(function(){
+	$(".gb_message").mention({
+		queryBy: ['name', 'username'],
+		users: {{guild_members|tojson|safe}}
+	});
+});
+</script>
+	<script src="{{url_for('static', filename='js/mention.js')}}"></script>
+	<script src="{{url_for('static', filename='js/bootstrap-typeahead.js')}}"></script>
+	<link href="{{url_for('static', filename='css/recommended-styles.css')}}" rel="stylesheet">
 {% endblock %}

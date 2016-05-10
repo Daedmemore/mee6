@@ -208,6 +208,65 @@ def logout():
     return redirect(url_for('index'))
 
 """
+    DISCORD RELATED PARSERS
+"""
+
+def typeahead_members(_members):
+    members = []
+    for m in _members:
+        user = {
+            'username': m['user']['username']+'#'+m['user']['discriminator'],
+            'name': m['user']['username'],
+        }
+        if m['user']['avatar']:
+            user['image'] = 'https://cdn.discordapp.com/avatars/{}/{}.jpg'.format(
+                m['user']['id'],
+                m['user']['avatar']
+            )
+        else:
+            user['image'] = url_for('static', filename='img/no_logo.png')
+        members.append(user)
+    return members
+
+def get_mention_parser(server_id, members=None):
+    _members = members
+    if members is None:
+        _members = get_guild_members(server_id)
+    #formating
+    __members = {}
+    for member in _members:
+        key = '<@{}>'.format(member['user']['id'])
+        __members[key] = '@{}#{}'.format(member['user']['username'], member['user']['discriminator'])
+
+    pattern = r'(<@[0-9]*>)'
+    def repl(k):
+        key = k.groups()[0]
+        val = __members.get(key)
+        if val:
+            return val
+        return key
+    return lambda string: re.sub(pattern, repl, string)
+
+def get_mention_decoder(server_id, members=None):
+    _members = members
+    if members is None:
+        _members = get_guild_members(server_id)
+    #formating
+    members = {}
+    for member in _members:
+        key = member['user']['username']+'#'+member['user']['discriminator']
+        members[key] = "<@{}>".format(member['user']['id'])
+    pattern = r'@(.*?#[0-9]{4})'
+    def repl(k):
+        key = k.groups()[0]
+        val = members.get(key)
+        if val:
+            return val
+        return key
+
+    return lambda string: re.sub(pattern, repl, string)
+
+"""
     STATIC pages
 """
 
@@ -391,48 +450,24 @@ def get_guild_channels(server_id, voice=True, text=True):
     Command Plugin
 """
 
+
 @app.route('/dashboard/<int:server_id>/commands')
 @plugin_page('Commands')
 def plugin_commands(server_id):
     commands = []
     commands_names = db.smembers('Commands.{}:commands'.format(server_id))
     _members = get_guild_members(server_id)
-    #formating
-    __members = {}
-    for member in _members:
-        key = '<@{}>'.format(member['user']['id'])
-        __members[key] = '@{}#{}'.format(member['user']['username'], member['user']['discriminator'])
-
-    pattern = r'(<@[0-9]*>)'
-    def repl(k):
-        key = k.groups()[0]
-        val = __members.get(key)
-        if val:
-            return val
-        return key
+    mention_parser = get_mention_parser(server_id, _members)
+    members = typeahead_members(_members)
     for cmd in commands_names:
         message = db.get('Commands.{}:command:{}'.format(server_id, cmd))
-        message = re.sub(pattern, repl, message)
+        message = mention_parser(message)
         command = {
             'name': cmd,
             'message': message
         }
         commands.append(command)
     commands = sorted(commands, key=lambda k: k['name'])
-    members = []
-    for m in _members:
-        user = {
-            'username': m['user']['username']+'#'+m['user']['discriminator'],
-            'name': m['user']['username'],
-        }
-        if m['user']['avatar']:
-            user['image'] = 'https://cdn.discordapp.com/avatars/{}/{}.jpg'.format(
-                m['user']['id'],
-                m['user']['avatar']
-            )
-        else:
-            user['image'] = url_for('static', filename='img/no_logo.png')
-        members.append(user)
     return {
         'guild_members': members,
         'commands': commands
@@ -443,22 +478,8 @@ def plugin_commands(server_id):
 def add_command(server_id):
     cmd_name = request.form.get('cmd_name', '')
     cmd_message = request.form.get('cmd_message', '')
-
-    _members = get_guild_members(server_id)
-    #formating
-    members = {}
-    for member in _members:
-        key = member['user']['username']+'#'+member['user']['discriminator']
-        members[key] = "<@{}>".format(member['user']['id'])
-    pattern = r'@(.*?#[0-9]{4})'
-    def repl(k):
-        key = k.groups()[0]
-        val = members.get(key)
-        if val:
-            return val
-        return key
-
-    cmd_message = re.sub(pattern, repl, cmd_message)
+    mention_decoder = get_mention_decoder(server_id)
+    cmd_message = mention_decoder(cmd_message)
 
     edit = cmd_name in db.smembers('Commands.{}:commands'.format(server_id))
 
@@ -665,8 +686,16 @@ def reset_all_players(server_id):
 @app.route('/dashboard/<int:server_id>/welcome')
 @plugin_page('Welcome')
 def plugin_welcome(server_id):
+    _members = get_guild_members(server_id)
+    mention_parser = get_mention_parser(server_id, _members)
+    members = typeahead_members(_members)
+
     initial_welcome = '{user}, Welcome to **{server}**! Have a great time here :wink: !'
+    initial_gb = '**{user}** just left **{server}**. Bye bye **{user}**...'
     welcome_message = db.get('Welcome.{}:welcome_message'.format(server_id))
+    private = db.get('Welcome.{}:private'.format(server_id)) or None
+    gb_message = db.get('Welcome.{}:gb_message'.format(server_id))
+    db_message = db.get('Welcome.{}:gb_message'.format(server_id))
     db_welcome_channel = db.get('Welcome.{}:channel_name'.format(server_id))
     guild_channels = get_guild_channels(server_id, voice=False)
     welcome_channel = None
@@ -677,9 +706,18 @@ def plugin_welcome(server_id):
     if welcome_message is None:
         db.set('Welcome.{}:welcome_message'.format(server_id), initial_welcome)
         welcome_message = initial_welcome
+    if gb_message is None:
+        db.set('Welcome.{}:gb_message'.format(server_id), initial_gb)
+        gb_message = initial_gb
+
+    welcome_message = mention_parser(welcome_message)
+    gb_message = mention_parser(gb_message)
 
     return {
+        'guild_members': members,
         'welcome_message': welcome_message,
+        'private': private,
+        'gb_message': gb_message,
         'guild_channels': guild_channels,
         'welcome_channel': welcome_channel
     }
@@ -687,18 +725,36 @@ def plugin_welcome(server_id):
 @app.route('/dashboard/<int:server_id>/welcome/update', methods=['POST'])
 @plugin_method
 def update_welcome(server_id):
+
+    mention_decoder = get_mention_decoder(server_id)
+
     servers = get_user_guilds(session['api_token'])
     server = list(filter(lambda g: g['id']==str(server_id), servers))[0]
 
     welcome_message = request.form.get('welcome_message')
+    welcome_message = mention_decoder(welcome_message)
+    private = request.form.get('private')
+
+    gb_message = request.form.get('gb_message')
+    gb_message = mention_decoder(gb_message)
+
     channel = request.form.get('channel')
+
+    if private:
+        db.set('Welcome.{}:private'.format(server_id), "1")
+    else:
+        db.delete('Welcome.{}:private'.format(server_id))
 
     if welcome_message == '' or len(welcome_message) > 2000:
         flash('The welcome message cannot be empty or have 2000+ characters.', 'warning')
     else:
-        db.set('Welcome.{}:welcome_message'.format(server_id), welcome_message)
-        db.set('Welcome.{}:channel_name'.format(server_id), channel)
-        flash('Settings updated ;) !', 'success')
+        if gb_message == '' or len(gb_message) > 2000:
+            flash('The good bye message cannot be empty or have 2000+ characters.', 'warning')
+        else:
+            db.set('Welcome.{}:welcome_message'.format(server_id), welcome_message)
+            db.set('Welcome.{}:gb_message'.format(server_id), gb_message)
+            db.set('Welcome.{}:channel_name'.format(server_id), channel)
+            flash('Settings updated ;) !', 'success')
 
     return redirect(url_for('plugin_welcome', server_id=server_id))
 
