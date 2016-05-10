@@ -10,11 +10,17 @@ var redisURL = process.env.REDIS_URL,
     shard_count = process.env.SHARD_COUNT || 0,
     threads = process.env.THREADS || 1,
     compression_level = process.env.COMPRESSION_LEVEL || 7,
+    datadog_url = process.env.DD_AGENT_URL.split("udp://")[1].split(":"),
     youtubedl = require('youtube-dl');
+
 var utils = require('./utils');
 
 var Discordie = require("discordie");
 var Events = Discordie.Events
+
+var StatsD = require('node-dogstatsd').StatsD;
+var stats = new StatsD(datadog_url[0], datadog_url[1]);
+console.log('Connected to datadog agent: '+datadog_url[0]+':'+datadog_url[1]);
 
 shard = parseInt(shard);
 shard_count = parseInt(shard_count);
@@ -30,6 +36,15 @@ var client = new Discordie(options);
 client.Messages.setMessageLimit(50);
 client.connect({token: process.env.MEE6_TOKEN});
 
+var voice_connections_updater = () => {
+  client.VoiceConnections.forEach((info) => {
+    if (info.voiceConnection){
+      stats.set('mee6.voice_connections', info.voiceConnection.guildId);
+    }
+  });
+};
+setInterval(voice_connections_updater, 30000);
+voice_connections_updater();
 
 client.Dispatcher.on(Events.GATEWAY_READY, e => {
   console.log("Connected as: " + client.User.username + " to " + client.Guilds.length + " guilds");
