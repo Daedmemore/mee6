@@ -89,26 +89,6 @@ class Mee6(discord.Client):
         plugins = await self.plugin_manager.get_all(server)
         return plugins
 
-    async def delete_messages(self, messages):
-        if messages is None or len(messages) == 0:
-            return
-
-        payload = {
-            'messages': [message.id for message in messages]
-        }
-
-        url = "{base}/channels/{channel_id}/messages/bulk_delete".format(
-            base=discord.endpoints.API_BASE,
-            channel_id=messages[0].channel.id
-        )
-
-        resp = await self._rate_limit_helper(
-            'delete_messages',
-            'POST',
-            url,
-            discord.utils.to_json(payload)
-        )
-
     async def send_message(self, *args, **kwargs):
         self.stats.incr('mee6.sent_messages')
         return await super().send_message(*args, **kwargs)

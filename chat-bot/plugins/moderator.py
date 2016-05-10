@@ -53,20 +53,21 @@ class Moderator(Plugin):
 
     @command(r'^!clear ([0-9]*)$', 'clear')
     async def clear_num(self, message, args):
-        number = args[0]
-        to_delete = []
-        messages = self.mee6.logs_from(
+        number = min(int(args[0]), 1000)
+        if number < 1:
+            return
+        deleted_messages = await self.mee6.purge_from(
             message.channel,
-            limit=min(int(number), 100)
+            limit=number+1
         )
-        async for message in messages:
-            to_delete.append(message)
 
-        await self.mee6.delete_messages(to_delete)
-
+        message_number = len(deleted_messages) - 1
         confirm_message = await self.mee6.send_message(
             message.channel,
-            "`Deleted {} messages!` :thumbsup: ".format(len(to_delete))
+            "`Deleted {} message{}!` :thumbsup: ".format(
+                message_number,
+                "" if message_number < 2 else "s"
+            )
         )
         await asyncio.sleep(3)
 
@@ -81,19 +82,15 @@ class Moderator(Plugin):
         if not user:
             return
 
-        messages = self.mee6.logs_from(
-            message.channel
+        deleted_messages = await self.mee6.purge_from(
+            message.channel,
+            check=lambda m: m.author==user or m==message
         )
-        to_delete = []
-        async for message in messages:
-            if message.author == user:
-                to_delete.append(message)
 
-        await self.mee6.delete_messages(to_delete)
-
+        message_number = len(deleted_messages)
         confirm = await self.mee6.send_message(
             message.channel,
-            "`Deleted {} messages!` :thumbsup: ".format(len(to_delete))
+            "`Deleted {} messages!` :thumbsup: ".format(message_number)
         )
         await asyncio.sleep(3)
         await self.mee6.delete_message(confirm)
