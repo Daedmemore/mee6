@@ -16,7 +16,7 @@ class Mee6(discord.Client):
     """
 
     def __init__(self, *args, **kwargs):
-        discord.Client.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.redis_url = kwargs.get('redis_url')
         self.mongo_url = kwargs.get('mongo_url')
         self.dd_agent_url = kwargs.get('dd_agent_url')
@@ -98,7 +98,7 @@ class Mee6(discord.Client):
         }
 
         url = "{base}/channels/{channel_id}/messages/bulk_delete".format(
-            base=discord.endpoints.BASE,
+            base=discord.endpoints.API_BASE,
             channel_id=messages[0].channel.id
         )
 
@@ -108,7 +108,6 @@ class Mee6(discord.Client):
             url,
             discord.utils.to_json(payload)
         )
-        print(resp)
 
     async def send_message(self, *args, **kwargs):
         self.stats.incr('mee6.sent_messages')
@@ -120,6 +119,12 @@ class Mee6(discord.Client):
             return
 
         server = message.server
+
+        if message.content == "!shard?":
+            if hasattr(self, 'shard_id'):
+                await self.send_message(message.channel, "shard {}/{}".format(self.shard_id+1,
+                                                                              self.shard_count))
+
         enabled_plugins = await self.get_plugins(server)
         for plugin in enabled_plugins:
             self.loop.create_task(plugin.on_message(message))
