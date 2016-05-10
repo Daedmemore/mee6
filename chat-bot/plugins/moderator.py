@@ -108,7 +108,7 @@ class Moderator(Plugin):
             return
 
         allow, deny = message.channel.overwrites_for(member)
-        allow.send_message = False
+        allow.send_messages = False
         deny.send_messages = True
         await self.mee6.edit_channel_permissions(
             message.channel,
@@ -284,8 +284,8 @@ class Moderator(Plugin):
         if message.author.id == self.mee6.user.id:
             return
 
-        #await self.clear_num(message)
-        #await self.clear_user(message)
+        await self.clear_num(message)
+        await self.clear_user(message)
         await self.banned_words(message)
         await self.mute(message)
         await self.unmute(message)
