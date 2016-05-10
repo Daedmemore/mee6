@@ -84,19 +84,30 @@ class Streamers(Plugin):
                         server.channels,
                         name=a_c
                 )
+
+                text_channels = filter(lambda c: c.type == discord.ChannelType.text,
+                                       server.channels)
                 if announcement_channel is None:
                     announcement_channel = discord.utils.get(
-                        server.channels,
+                        text_channels,
                         id = a_c
                     ) or server
-                msg = await self.mee6.send_message(announcement_channel, announcement_msg)
-                # Mark as announcement
-                if not msg:
-                    continue
-                await storage.sadd('streamer:{}'.format(
-                    live_streamer['channel']['name']),
-                    live_streamer['_id']
-                )
+                try:
+                    msg = await self.mee6.send_message(announcement_channel, announcement_msg)
+                    # Mark as announcement
+                    if not msg:
+                        continue
+                    await storage.sadd('streamer:{}'.format(
+                        live_streamer['channel']['name']),
+                        live_streamer['_id']
+                    )
+                except discord.errors.Forbidden as e:
+                    logs.info(
+                        "FORBIDDEN (status code: 403): Missing permission... Channel: {}, Server: {}".format(
+                            announcement_channel.name,
+                            server.name
+                        )
+                    )
 
 
     async def on_ready(self):
@@ -113,4 +124,4 @@ class Streamers(Plugin):
             except Exception as e:
                 logs.info('An error occured in Streamer plugin cron job. Retrying...')
                 logs.info(e)
-            await asyncio.sleep(10)
+            await asyncio.sleep(30)
