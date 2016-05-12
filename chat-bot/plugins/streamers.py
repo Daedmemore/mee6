@@ -1,127 +1,186 @@
 from plugin import Plugin
+from collections import defaultdict
 import aiohttp
 import asyncio
-import discord
 import logging
+import json
 
-logs = logging.getLogger('discord')
+log = logging.getLogger("discord")
 
-class Streamers(Plugin):
-    """A plugin for twitch lives announcement
+class Platform:
+    def __init__(self, name, db_name=None):
+        self.name = name
+        self.db_name = db_name or name
 
-    EVERY X seconds:
-        -> Get all the streamers in the db
-        -> Get all the streamers live
-        -> Foreach server which has enabled the plugins
-            -> Foreach streamers of the channel
-                -> Check if not announced
-                    -> Get announcement_msg
-                    -> Get announcement_channel
-                    -> Mark as announced
-    """
+    def collector(self, collector_func):
+        self.collector = collector_func
 
-    async def get_streamers(self):
-        """Gets all the streamers in the db"""
-        streamers = []
-        # Getting all the streamers in the db
-        for server in self.mee6.servers:
-            enabled_plugins = await self.mee6.get_plugins(server)
-            if self not in enabled_plugins:
-                continue
-            storage = await self.get_storage(server)
-            streamers += list(await storage.smembers('streamers'))
+class Streamer:
+    def __init__(self, name, display_name, link, stream_id):
+        self.name = name
+        self.display_name = display_name
+        self.link = link
+        self.stream_id = stream_id
 
-        return set(streamers)
+"""
+   Twitch
+"""
+twitch_platform = Platform("twitch", db_name="streamers")
 
-
-    async def get_live_streamers(self, streamers):
-        """Gets all the streamers that are live from a list of streamers"""
-        # Getting all the streamers live
-        live_streamers = {}
-        streamers = list(map(lambda s: s.replace(' ', ''), streamers))
-        for i in range(0, 1+int(len(streamers)/100)):
-            url = "https://api.twitch.tv/kraken/streams?channel={}&stream_type=live&limit=100"
-            with aiohttp.ClientSession() as session:
-                async with session.get(url.format(",".join(streamers[i*100:(i+1)*100]))) as resp:
-                    result = await resp.json()
-                    live_streamers_list = list(map(lambda s:(s['channel']['name'], s),
-                                                   result['streams']))
-                    live_streamers_str = ",".join(map(lambda s:s[0], live_streamers_list))
-                    logs.debug("Getting streams info of: "+live_streamers_str)
-                    _live_streamers = {name: info for name, info in live_streamers_list}
-                    live_streamers = {**live_streamers, **_live_streamers}
-        return live_streamers
-
-    async def announce_live(self, server, live_streamers):
-        """Announce the lives if not already announced"""
-        # Check if plugin enabled
-        enabled_plugins = await self.mee6.get_plugins(server)
-        if self not in enabled_plugins:
-            return
-        storage = await self.get_storage(server)
-        streamers = await storage.smembers('streamers')
-        for streamer in streamers:
-            # Grab the streamers that are live
-            if streamer in live_streamers:
-                live_streamer = live_streamers[streamer]
-                streamer_ids = await storage.smembers('streamer:{}'.format(
-                    live_streamer['channel']['name']
-                ))
-                # Check if already announced
-                if str(live_streamer['_id']) in streamer_ids:
-                    continue
-                # Announce
-                announcement_msg = await storage.get('announcement_msg')
-                announcement_msg = announcement_msg.replace(
-                    '{streamer}',
-                    live_streamer['channel']['name']
-                ).replace(
-                    '{link}',
-                    'http://twitch.tv/'+live_streamer['channel']['name']
-                )
-                a_c = await storage.get('announcement_channel')
-                announcement_channel = discord.utils.get(
-                        server.channels,
-                        name=a_c
-                )
-
-                text_channels = filter(lambda c: c.type == discord.ChannelType.text,
-                                       server.channels)
-                if announcement_channel is None:
-                    announcement_channel = discord.utils.get(
-                        text_channels,
-                        id = a_c
-                    ) or server
-                try:
-                    msg = await self.mee6.send_message(announcement_channel, announcement_msg)
-                    # Mark as announcement
-                    if not msg:
-                        continue
-                    await storage.sadd('streamer:{}'.format(
-                        live_streamer['channel']['name']),
-                        live_streamer['_id']
+@twitch_platform.collector
+async def twitch_collector(streamers):
+    streamers = list(map(lambda s: s.replace(' ', '_'), streamers))
+    live_streamers = []
+    for i in range(0, len(streamers), 100):
+        chunk = streamers[i:i+100]
+        url = "https://api.twitch.tv/kraken/streams?channel={}&limit=100".format(
+            ",".join(chunk)
+        )
+        with aiohttp.ClientSession() as session:
+            async with session.get(url) as resp:
+                result = await resp.json()
+                for stream in result['streams']:
+                    streamer = Streamer(
+                        stream['channel']['name'],
+                        stream['channel']['display_name'],
+                        stream['channel']['url'],
+                        str(stream['_id'])
                     )
-                except discord.errors.Forbidden as e:
-                    logs.info(
-                        "FORBIDDEN (status code: 403): Missing permission... Channel: {}, Server: {}".format(
-                            announcement_channel.name,
-                            server.name
+                    live_streamers.append(streamer)
+
+    return live_streamers
+
+"""
+    HitBox
+"""
+hitbox_platform = Platform("hitbox", db_name="hitbox_streamers")
+
+@hitbox_platform.collector
+async def hitbox_collector(streamers):
+    streamers = list(map(lambda s: s.replace(' ', '_'), streamers))
+    live_streamers = []
+    url="https://api.hitbox.tv/media/live/{}?fast=1&live_only=1".format(
+        ",".join(streamers)
+    )
+    live_streamers = []
+    with aiohttp.ClientSession() as session:
+        async with session.get(url) as resp:
+            result = await resp.text()
+            result = json.loads(result)
+            if result['livestream']:
+                for live in result['livestream']:
+                    if live["media_is_live"] == "1":
+                        streamer = Streamer(
+                            live["media_name"],
+                            live["media_display_name"],
+                            live["channel"]["channel_link"],
+                            live["media_live_since"]
                         )
-                    )
+                        live_streamers.append(streamer)
+    return live_streamers
 
+"""
+    Beam
+"""
+beam_platform = Platform("beam", db_name="beam_streamers")
+
+@beam_platform.collector
+async def beam_collector(streamers):
+    streamers = list(map(lambda s: s.replace(' ', '_'), streamers))
+    live_streamers = []
+    url = "http://beam.pro/api/v1/channels?where=online.eq.1,token.in.{}".format(
+        ";".join(streamers)
+    )
+
+    with aiohttp.ClientSession() as session:
+        async with session.get(url) as resp:
+            resp = await resp.json()
+            for stream in resp:
+                url = "https://beam.pro/api/v1/channels/{}/manifest.light".format(
+                    stream['id']
+                )
+                async with session.get(url) as manifest:
+                    manifest = await manifest.json()
+                    streamer = Streamer(
+                        stream['user']['username'].lower(),
+                        stream['user']['username'],
+                        "https://beam.pro/"+stream['user']['username'],
+                        manifest['since']
+                    )
+                    live_streamers.append(streamer)
+    return live_streamers
+
+"""
+    Plugin logic
+"""
+class Streamers(Plugin):
+
+    fancy_name = "Streamers"
+
+    platforms = [twitch_platform, hitbox_platform, beam_platform]
+
+    async def get_servers_list(self):
+        servers = []
+        for server in self.mee6.servers:
+            plugins = await self.mee6.db.redis.smembers("plugins:"+server.id)
+            if "Streamers" in plugins:
+                servers.append(server)
+        return servers
+
+    async def get_live_streamers_by_servers(self):
+        servers = await self.get_servers_list()
+        data = defaultdict(list)
+        for platform in self.platforms:
+            streamers = []
+            temp_data = {}
+            for server in servers:
+                server_streamers = await self.mee6.db.redis.smembers(
+                    'Streamers.'+server.id+':'+platform.db_name
+                )
+                server_streamers = list(server_streamers)
+                temp_data[server] = server_streamers
+                streamers += server_streamers
+            streamers = set(streamers)
+            try:
+                live_streamers = await platform.collector(streamers)
+                for server, server_streamers in temp_data.items():
+                    for streamer in live_streamers:
+                        if streamer.name in server_streamers:
+                            data[server.id].append(streamer)
+            except Exception as e:
+                log.info("Cannot gather live streamers from "+platform.name)
+                log.info(e)
+        return data
 
     async def on_ready(self):
         while True:
-            try:
-                # Getting all the streamers
-                streamers = await self.get_streamers()
-                # Getting all lve streamers
-                live_streamers = await self.get_live_streamers(streamers)
-                # Handle announcement
-                for server in self.mee6.servers:
-                    await self.announce_live(server, live_streamers)
-                # Wait till next round
-            except Exception as e:
-                logs.info('An error occured in Streamer plugin cron job. Retrying...')
-                logs.info(e)
+            data = await self.get_live_streamers_by_servers()
+            for server_id, live_streamers in data.items():
+                server = self.mee6.get_server(server_id)
+                if not server:
+                    continue
+
+                storage = await self.get_storage(server)
+                channel_id = await storage.get('announcement_channel')
+                announcement_channel = self.mee6.get_channel(channel_id) or server
+                announcement_message = await storage.get('announcement_msg')
+                for streamer in live_streamers:
+                    streamer_streams_id = await storage.smembers('check:'+streamer.link) or []
+                    check = streamer.stream_id in streamer_streams_id
+                    if check:
+                        continue
+                    try:
+                        await self.mee6.send_message(
+                            announcement_channel,
+                            announcement_message.replace(
+                                '{streamer}',
+                                streamer.name
+                            ).replace(
+                                '{link}',
+                                streamer.link
+                            )
+                        )
+                        await storage.sadd('check:'+streamer.link, streamer.stream_id)
+                    except Exception as e:
+                        log.info(e)
             await asyncio.sleep(30)

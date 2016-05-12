@@ -882,7 +882,11 @@ def message_logs(server_id, dt, channel):
 @plugin_page('Streamers')
 def plugin_streamers(server_id):
     streamers = db.smembers('Streamers.{}:streamers'.format(server_id))
+    beam_streamers = db.smembers('Streamers.{}:beam_streamers'.format(server_id))
+    hitbox_streamers = db.smembers('Streamers.{}:hitbox_streamers'.format(server_id))
     streamers = ','.join(streamers)
+    beam_streamers = ','.join(beam_streamers)
+    hitbox_streamers = ','.join(hitbox_streamers)
     db_announcement_channel = db.get('Streamers.{}:announcement_channel'.format(server_id))
     guild_channels = get_guild_channels(server_id, voice=False)
     announcement_channel = None
@@ -892,14 +896,16 @@ def plugin_streamers(server_id):
             break
     announcement_msg = db.get('Streamers.{}:announcement_msg'.format(server_id))
     if announcement_msg is None:
-        announcement_msg = "Hey @everyone! {streamer} is now live on http://twitch.tv/{streamer} ! Go check it out :wink:!"
+        announcement_msg = "Hey @everyone! {streamer} is now live on {link} ! Go check it out :wink:!"
         db.set('Streamers.{}:announcement_msg'.format(server_id), announcement_msg)
 
     return {
         'announcement_channel': announcement_channel,
         'guild_channels': guild_channels,
         'announcement_msg': announcement_msg,
-        'streamers': streamers
+        'streamers': streamers,
+        'hitbox_streamers': hitbox_streamers,
+        'beam_streamers': beam_streamers
     }
 
 @app.route('/dashboard/<int:server_id>/update_streamers', methods=['POST'])
@@ -914,12 +920,23 @@ def update_streamers(server_id):
         return redirect(url_for('plugin_streamers', server_id=server_id))
 
     streamers = request.form.get('streamers').split(',')
+    beam_streamers = request.form.get('beam_streamers').split(',')
+    hitbox_streamers = request.form.get('hitbox_streamers').split(',')
     db.set('Streamers.{}:announcement_channel'.format(server_id), announcement_channel)
     db.set('Streamers.{}:announcement_msg'.format(server_id), announcement_msg)
     db.delete('Streamers.{}:streamers'.format(server_id))
+    db.delete('Streamers.{}:beam_streamers'.format(server_id))
+    db.delete('Streamers.{}:twitch_streamers'.format(server_id))
     for streamer in streamers:
         if streamer != "":
             db.sadd('Streamers.{}:streamers'.format(server_id), streamer.replace(' ', '_').lower())
+    for streamer in beam_streamers:
+        if streamer != "":
+            db.sadd('Streamers.{}:beam_streamers'.format(server_id), streamer.replace(' ', '_').lower())
+    for streamer in hitbox_streamers:
+        if streamer != "":
+            db.sadd('Streamers.{}:hitbox_streamers'.format(server_id), streamer.replace(' ', '_').lower())
+
 
     flash('Configuration updated with success!', 'success')
     return redirect(url_for('plugin_streamers', server_id=server_id))

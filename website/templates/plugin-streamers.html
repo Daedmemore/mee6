@@ -22,11 +22,16 @@
 							<label class="control-label" for="announcement_msg">Announcement message</label>
 							<input class="form-control input-lg" name="announcement_msg" value="{{announcement_msg}}" type="text" id="announcement_msg">
 							<div class="well well-sm">
-								<strong>Tips:</strong> Use {streamer} for the streamer name.
+								<strong>Tips:</strong> Use <strong>{streamer}</strong> for the streamer name and <strong>{link}</strong> for his channel link.
 							</div>
-							<h3>Streamers Channels</h3>
-							<input type="text" data-role="tagsinput" value="{{streamers}}"
-							name="streamers" data-role="tagsinput"><br /><br />
+							<h3>Twitch Channels</h3>
+							<input type="text" data-role="tagsinput" value="{{streamers}}" name="streamers" data-role="tagsinput"><br />
+							<h3>Hitbox Channels</h3>
+							<input type="text" data-role="tagsinput" value="{{hitbox_streamers}}"
+							name="hitbox_streamers" data-role="tagsinput"><br />
+							<h3>Beam Channels</h3>
+							<input type="text" data-role="tagsinput" value="{{beam_streamers}}"
+																								name="beam_streamers" data-role="tagsinput"><br /><br />
 							<button type="submit" class="btn btn-primary">Update</button>
 						</div>
 					</form>
