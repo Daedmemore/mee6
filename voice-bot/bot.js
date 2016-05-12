@@ -43,11 +43,20 @@ var voice_connections_updater = () => {
     }
   });
 };
-setInterval(voice_connections_updater, 30000);
-voice_connections_updater();
 
 client.Dispatcher.on(Events.GATEWAY_READY, e => {
   console.log("Connected as: " + client.User.username + " to " + client.Guilds.length + " guilds");
+});
+client.Dispatcher.on(Events.DISCONNECTED, e => {
+  console.log("CloudFlare omgggg...");
+  process.exit(0);
+});
+
+client.Dispatcher.on(Events.VOICE_CONNECTED, e => {
+  voice_connections_updater();
+});
+client.Dispatcher.on(Events.VOICE_DISCONNECTED, e => {
+  voice_connections_updater();
 });
 
 let isAllowed = (member, cb) => {
@@ -150,9 +159,11 @@ let stop = (message) => {
 };
 
 let leave = (message) => {
-  var voiceCo = client.VoiceConnections.getForGuild(message.guild);
-  if (voiceCo) {
-    voiceCo.disconnect();
+  var info = client.VoiceConnections.getForGuild(message.guild);
+  if (info) {
+    if (info.voiceConnection) {
+      info.voiceConnection.disconnect();
+    }
   }
 }
 
