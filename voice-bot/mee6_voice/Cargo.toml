@@ -1,0 +1,9 @@
+[package]
+name = "mee6_voice"
+version = "0.1.0"
+authors = ["cookie"]
+
+[dependencies]
+discord = "0.5.0"
+redis = "0.5.3"
+rustc-serialize = "0.3.19"
