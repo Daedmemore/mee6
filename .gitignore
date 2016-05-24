@@ -1,8 +1,11 @@
 *.pyc
+*.ropeproject
 bin/
 include/
 lib/
 voice-bot/envfile
+voice-bot/mee6_voice/Cargo.lock
+voice-bot/mee6_voice/target
 */node_modules/
 lib64
 pyvenv.cfg
