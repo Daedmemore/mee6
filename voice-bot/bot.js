@@ -83,6 +83,33 @@ let isAllowed = (member, cb) => {
   });
 };
 
+let isModerator = isAllowed;
+
+let isRequester = (member, cb) => {
+  isModerator(member, (check) => {
+    if (check) {
+      cb(true);
+      return;
+    }
+    
+    redisClient.smembers('Music.'+member.guild.id+':requesters_roles', (err, roles) => {
+      if (roles.indexOf("@everyone") > -1 || roles.indexOf(member.guild.id) > -1){
+        cb(true);
+        return;
+      }
+
+      for (var role of member.roles){
+        if (roles.indexOf(role.id) > -1) {
+          cb(true);
+          return;
+        }
+      }
+
+      cb(false);
+    }
+  });
+};
+
 let queueUp = (music, message) => {
   var guild = message.guild;
   utils.isMusicEnabled(guild, (musicEnabled) => {

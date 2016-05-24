@@ -9,8 +9,14 @@ let isMusicEnabled = (guild, cb) => {
   redisClient.smembers("plugins:"+guild.id, (err, plugins) => {
     if (err!=null)
       console.log(err);
-    else
-      cb(plugins.indexOf("Music") > -1);
+    else {
+      redisClient.get("buffs:"+guild.id+":music", (err, music) => {
+        if (err!=null)
+          console.log(err);
+        else
+          cb(plugins.indexOf("Music") > -1 && music != null);
+      });
+    }
   });
 };
 
