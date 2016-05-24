@@ -4,98 +4,123 @@ import asyncio
 import aiohttp
 import discord
 
-logs = logging.getLogger('discord')
+
+log = logging.getLogger('discord')
+
 
 class Reddit(Plugin):
-    """A plugin for Reddit feeds"""
 
-    async def get_posts(self, sub):
-        url = "https://www.reddit.com/r/{}/new.json".format(sub)
+    fancy_name = "Reddit"
+
+    message_format = "`New post from /r/{subreddit}`\n\n"\
+                     "**{title}** *by {author}*\n"\
+                     "{content}\n"\
+                     "**Link** {link}"
+
+    async def get_posts(self, subreddit):
+        """Gets the n last posts of a subreddit
+
+        Args:
+            subreddit: Subbredit name
+            n: The number of posts you want
+
+        Returns:
+            A list of posts
+        """
+
+        url = "https://www.reddit.com/r/{}/new.json".format(subreddit)
         posts = []
-        with aiohttp.ClientSession() as session:
-            try:
+
+        try:
+            with aiohttp.ClientSession() as session:
                 async with session.get(url) as resp:
                     if resp.status == 200:
                         json = await resp.json()
                         posts = json['data']['children']
-            except:
-                pass
-        return list(map(lambda p:p['data'], posts))
+                        posts = list(map(lambda p: p['data'], posts))
+        except Exception as e:
+            log.info("Cannot get posts from {}".format(subreddit))
+            log.info(e)
+            return []
 
-    async def display_posts(self, posts, server):
+        return posts[:4]
+
+    async def display_posts(self, subreddit, posts, server):
+        """Display a list of posts into the corresponding destination channel.
+
+        This function only displays posts that hasn't been posted previously.
+        """
+        posts = reversed(posts)
         storage = await self.get_storage(server)
-        destination_name = await storage.get('display_channel')
-        display_channel = discord.utils.get(server.channels, name=destination_name)
-        destination = display_channel or server
+        destination_id = await storage.get('display_channel')
+        destination = discord.utils.get(server.channels, id=destination_id)
+        if destination is None:
+            return
 
-        responses = [""]
+        posted = await storage.smembers(subreddit+':posted')
         for post in posts:
-            selftext = post['selftext']
-            if selftext:
-                selftext = post['selftext'][:400]
+            was_posted = post['id'] in posted
+            if was_posted:
+                continue
 
-            tail = """`New post from /r/{subreddit}`
-
-            **{title}** *by {author}*
-            {content}
-            **Link** {link}
-            """.format(
+            selftext = post['selftext'] or ""
+            message = self.message_format.format(
                 title=post['title'],
                 subreddit=post['subreddit'],
                 author=post['author'],
-                content=selftext,
-                link=post['url']
+                content=selftext[:300],
+                link="http://redd.it/"+post['id']
             )
-            print(len(tail+responses[-1]))
-            if len(tail+responses[-1])>2000:
-                responses.append(tail)
-            else:
-                responses[-1] += tail
 
-        for response in responses:
-            await self.mee6.send_message(destination, response)
+            await self.mee6.send_message(destination, message)
+            await storage.sadd(subreddit+':posted', post['id'])
 
-        if posts:
-            await storage.set('{}:last'.format(posts[-1]['subreddit'].lower()), posts[-1]['id'])
+    async def get_all_subreddits_posts(self):
+        all_subreddits = []
 
-    async def get_to_announce(self, posts, server):
-        storage = await self.get_storage(server)
-        sub = posts[0]['subreddit']
-        last_posted = await storage.get('{}:last'.format(sub))
-        if last_posted is None:
-            return [posts[0]]
-
-        i = 0
-        while i<len(posts) and last_posted!=posts[i]['id']:
-            i += 1
-
-        return posts[:i]
-
-    async def cron_job(self):
-        servers = self.mee6.servers
-        for server in servers:
-            enabled_plugins = await self.mee6.get_plugins(server)
-            if self not in enabled_plugins:
+        for server in list(self.mee6.servers):
+            plugins = await self.mee6.db.redis.smembers('plugins:'+server.id)
+            if "Reddit" not in plugins:
                 continue
 
             storage = await self.get_storage(server)
-            if storage is None:
-                continue
+            for subreddit in await storage.smembers('subs'):
+                all_subreddits.append(subreddit)
 
-            subs = await storage.smembers('subs'.format(server.id))
-            for sub in subs:
-                last_posts = await self.get_posts(sub)
-                if not last_posts:
-                    continue
+        all_subreddits = set(all_subreddits)
+        all_subreddits_posts = {}
+        for subreddit in all_subreddits:
+            all_subreddits_posts[subreddit] = await self.get_posts(subreddit)
 
-                to_announce = list(reversed(await self.get_to_announce(last_posts, server)))
-                await self.display_posts(to_announce, server)
+        return all_subreddits_posts
 
     async def on_ready(self):
         while True:
             try:
-                await self.cron_job()
+                all_subreddits_posts = await self.get_all_subreddits_posts()
+                for server in list(self.mee6.servers):
+                    try:
+                        plugins = await self.mee6.db.redis.smembers(
+                            'plugins:'+server.id
+                        )
+                        if "Reddit" not in plugins:
+                            continue
+
+                        storage = await self.get_storage(server)
+                        subreddits = await storage.smembers('subs')
+                        for subreddit in subreddits:
+                            subreddit_posts = all_subreddits_posts.get(
+                                subreddit,
+                                []
+                            )
+                            await self.display_posts(subreddit,
+                                                    subreddit_posts,
+                                                 server)
+                    except Exception as e:
+                        log.info("An error occured in Reddit plugin with"
+                                 " server {}".format(server.id))
+                        log.info(e)
             except Exception as e:
-                print('lol')
-                raise(e)
-            await asyncio.sleep(20)
+                log.info("An error occured in Reddit plugin...Retrying...")
+                log.info(e)
+            await asyncio.sleep(30)

@@ -19,6 +19,8 @@ class Commands(Plugin):
         return cmds
 
     async def on_message(self, message):
+        if message.author.bot:
+            return
         if message.author.id == self.mee6.user.id:
             return
         storage = await self.get_storage(message.server)

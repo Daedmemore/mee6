@@ -4,9 +4,9 @@ from functools import wraps
 import logging
 import asyncio
 import re
-import discord
 
 logs = logging.getLogger("discord")
+
 
 def command(pattern, db_name):
     def actual_decorator(func):
@@ -35,19 +35,19 @@ def command(pattern, db_name):
         return wrapper
     return actual_decorator
 
+
 class Moderator(Plugin):
 
     async def check_auth(self, member):
         # Check if the author if authorized
         storage = await self.get_storage(member.server)
         role_names = await storage.smembers('roles')
-        server = member.server
         authorized = False
         for role in member.roles:
-            if (role.name in role_names or
-                role.id in role_names or
-                role.permissions.manage_server):
-                authorized = True
+            authorized = any([role.name in role_names,
+                             role.id in role_names,
+                             role.permissions.manage_server])
+            if authorized:
                 break
         return authorized
 
@@ -73,9 +73,8 @@ class Moderator(Plugin):
 
         await self.mee6.delete_message(confirm_message)
 
-    @command(r'^!clear <@([0-9]*)>$', 'clear')
+    @command(r'^!clear <@!?([0-9]*)>$', 'clear')
     async def clear_user(self, message, args):
-        user_id = args[0]
         if not message.mentions:
             return
         user = message.mentions[0]
@@ -84,7 +83,7 @@ class Moderator(Plugin):
 
         deleted_messages = await self.mee6.purge_from(
             message.channel,
-            check=lambda m: m.author==user or m==message
+            check=lambda m: m.author.id == user.id or m == message
         )
 
         message_number = len(deleted_messages)
@@ -95,7 +94,7 @@ class Moderator(Plugin):
         await asyncio.sleep(3)
         await self.mee6.delete_message(confirm)
 
-    @command(r'^!mute <@([0-9]*)>$', 'mute')
+    @command(r'^!mute <@!?([0-9]*)>$', 'mute')
     async def mute(self, message, args):
         if not message.mentions:
             return
@@ -118,7 +117,7 @@ class Moderator(Plugin):
             "{} is now :speak_no_evil: here!".format(member.mention)
         )
 
-    @command(r'^!unmute <@([0-9]*)>$', 'mute')
+    @command(r'^!unmute <@!?([0-9]*)>$', 'mute')
     async def unmute(self, message, args):
         if not message.mentions:
             return
@@ -139,7 +138,8 @@ class Moderator(Plugin):
         )
         await self.mee6.send_message(
             message.channel,
-            "{} is no longer :speak_no_evil: here! He/she can speak :monkey_face:!".format(member.mention)
+            "{} is no longer :speak_no_evil: here! He/she "
+            "can speak :monkey_face:!".format(member.mention)
         )
 
     @command(r'!slowmode ([0-9]*)', 'slowmode')
@@ -169,6 +169,7 @@ class Moderator(Plugin):
                 num
             )
         )
+
     @command(r'^!slowoff$', 'slowmode')
     async def slowoff(self, message, args):
         storage = await self.get_storage(message.server)
@@ -217,11 +218,6 @@ class Moderator(Plugin):
         if not interval:
             return
 
-        # Get the slowed list
-        slowed_members = await storage.smembers(
-            'slowmode:{}:slowed'.format(message.channel.id)
-        )
-
         # If the user not in the slowed list
         # Add the user to the slowed list
         await storage.sadd(
@@ -236,7 +232,7 @@ class Moderator(Plugin):
             message.author.id)
         ) is not None
 
-        if slowed :
+        if slowed:
             await self.mee6.delete_message(message)
         else:
             # Register a TTL key for the user
@@ -292,4 +288,3 @@ class Moderator(Plugin):
         await self.slowmode(message)
         await self.slowoff(message)
         await self.slow_check(message)
-

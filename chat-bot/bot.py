@@ -13,7 +13,7 @@ from plugins.streamers import Streamers
 from plugins.moderator import Moderator
 from plugins.early_backers import EarlyBackers
 from plugins.music import Music
-#from plugins.reddit import Reddit
+from plugins.reddit import Reddit
 
 # Global plugins
 from plugins.basiclogs import BasicLogs

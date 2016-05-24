@@ -52,7 +52,12 @@ class Help(Plugin):
                 message.server.name
             ))
             server = message.server
+            storage = await self.get_storage(server)
             help_message = await self.generate_help(server)
             if help_message == '':
                 help_message = "There's no command to show :cry:"
-            await self.mee6.send_message(message.channel, help_message)
+            destination = message.channel
+            check = await storage.get('whisp')
+            if check:
+                destination = message.author
+            await self.mee6.send_message(destination, help_message)

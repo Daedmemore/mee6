@@ -1,17 +1,16 @@
 import discord
-import asyncio
 import logging
 from plugin_manager import PluginManager
 from database import Db
-from time import time
 from datadog import DDAgent
 
 log = logging.getLogger('discord')
 
+
 class Mee6(discord.Client):
     """A modified discord.Client class
 
-    This mod dispatched most events to the different plugins.
+    This mod dispatches most events to the different plugins.
 
     """
 
@@ -26,6 +25,8 @@ class Mee6(discord.Client):
         self.last_messages = []
         self.stats = DDAgent(self.dd_agent_url)
 
+    def run(self, *args):
+        self.loop.run_until_complete(self.start(*args))
 
     async def on_ready(self):
         """Called when the bot is ready.
@@ -37,7 +38,10 @@ class Mee6(discord.Client):
         log.info('Connected to the database')
 
         if hasattr(self, 'shard_id'):
-            msg = 'Chat Shard {}/{} restarted'.format(self.shard_id, self.shard_count)
+            msg = 'Chat Shard {}/{} restarted'.format(
+                self.shard_id,
+                self.shard_count
+            )
         else:
             msg = 'Mee6 Chat restarted'
         self.stats.event(msg, 'Server count: {}'.format(len(self.servers)))
@@ -54,9 +58,15 @@ class Mee6(discord.Client):
             log.debug('Adding server {}\'s id to db'.format(server.id))
             await self.db.redis.sadd('servers', server.id)
             if server.name:
-                await self.db.redis.set('server:{}:name'.format(server.id), server.name)
+                await self.db.redis.set(
+                    'server:{}:name'.format(server.id),
+                    server.name
+                )
             if server.icon:
-                await self.db.redis.set('server:{}:icon'.format(server.id), server.icon)
+                await self.db.redis.set(
+                    'server:{}:icon'.format(server.id),
+                    server.icon
+                )
 
     async def on_server_join(self, server):
         """Called when joining a new server"""
@@ -64,12 +74,18 @@ class Mee6(discord.Client):
         self.stats.set('mee6.servers', server.id)
         self.stats.incr('mee6.server_join')
 
-        log.info('Joined {} server : {} !'.format(server.owner.name, server.name))
+        log.info('Joined {} server : {} !'.format(
+            server.owner.name,
+            server.name
+        ))
         log.debug('Adding server {}\'s id to db'.format(server.id))
         await self.db.redis.sadd('servers', server.id)
         await self.db.redis.set('server:{}:name'.format(server.id), server.name)
         if server.icon:
-            await self.db.redis.set('server:{}:icon'.format(server.id), server.icon)
+            await self.db.redis.set(
+                'server:{}:icon'.format(server.id),
+                server.icon
+            )
         # Dispatching to global plugins
         for plugin in self.plugins:
             if plugin.is_global:
@@ -81,8 +97,13 @@ class Mee6(discord.Client):
         Removes the server from the db.
 
         """
-        log.info('Leaving {} server : {} !'.format(server.owner.name, server.name))
-        log.debug('Removing server {}\'s id from the db'.format(server.id))
+        log.info('Leaving {} server : {} !'.format(
+            server.owner.name,
+            server.name
+        ))
+        log.debug('Removing server {}\'s id from the db'.format(
+            server.id
+        ))
         await self.db.redis.srem('servers', server.id)
 
     async def get_plugins(self, server):
@@ -102,8 +123,10 @@ class Mee6(discord.Client):
 
         if message.content == "!shard?":
             if hasattr(self, 'shard_id'):
-                await self.send_message(message.channel, "shard {}/{}".format(self.shard_id+1,
-                                                                              self.shard_count))
+                await self.send_message(
+                    message.channel,
+                    "shard {}/{}".format(self.shard_id+1, self.shard_count)
+                )
 
         enabled_plugins = await self.get_plugins(server)
         for plugin in enabled_plugins:
@@ -191,7 +214,7 @@ class Mee6(discord.Client):
     async def on_server_role_update(self, before, after):
         server = None
         for s in self.servers:
-            if after.id in map(lambda r:r.id, s.roles):
+            if after.id in map(lambda r: r.id, s.roles):
                 server = s
                 break
 
@@ -203,12 +226,14 @@ class Mee6(discord.Client):
             self.loop.create_task(plugin.on_server_role_update(before, after))
 
     async def on_voice_state_update(self, before, after):
-        if after is None:
+        if after is None and before is None:
+            return
+        elif after is None:
             server = before.server
         elif before is None:
             server = after.server
         else:
-            return
+            server = after.server
 
         enabled_plugins = await self.get_plugins(server)
         for plugin in enabled_plugins:
@@ -234,4 +259,3 @@ class Mee6(discord.Client):
         enabled_plugins = await self.get_plugins(server)
         for plugin in enabled_plugins:
             self.loop.create_task(plugin.on_typing(channel, user, when))
-
