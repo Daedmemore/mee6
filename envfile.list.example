@@ -31,6 +31,13 @@ CARBONITEX_KEY=
 GOOGLE_API_KEY=
 
 # Data dog
-
 DD_API_KEY=
 DD_APP_KEY=
+
+# Paypal
+PAYPAL_MODE=
+PAYPAL_CLIENT_ID=
+PAYPAL_CLIENT_SECRET=
+
+# Mee6 default playing game
+MEE6_GAME=
