@@ -122,7 +122,7 @@ let queueUp = (music, message) => {
     };
     redisClient.rpush("Music."+guild.id+":request_queue", JSON.stringify(music), (error) => {
       if (error){
-        message.channel.sendMessage("An error happened when Queuing up the music...");
+        message.channel.sendMessage("An error happened when queuing up the music...");
         console.log(error);
       } 
       else
@@ -230,7 +230,7 @@ client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
               url = "https://youtube.com/?v="+video.id.videoId;
               youtubedl.getInfo(url, ['-f', "bestaudio"], (err, info) => {
                if (err) {
-                e.message.channel.sendMessage("An error occured, sorry :cry:...");
+                e.message.channel.sendMessage("An error occurred, sorry :cry:...");
                 return;
               }
               var music = {
@@ -243,7 +243,7 @@ client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
               });
             }
             else {
-              e.message.channel.sendMessage("An error occured durring the search :frowning:");
+              e.message.channel.sendMessage("An error occurred during the search :frowning:");
               return;
             }
           });
@@ -252,7 +252,7 @@ client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
           var url = arg;
           youtubedl.getInfo(url, ['-f', "'bestaudio"], (err, info) => {
             if (err) {
-              e.message.channel.sendMessage("An error occured, sorry :cry:...");
+              e.message.channel.sendMessage("An error occurred, sorry :cry:...");
               return;
             }
             var music = {
