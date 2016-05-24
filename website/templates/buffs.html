@@ -1,0 +1,24 @@
+<h3>Potion Buffs</h3>
+<div class="list-group">
+	<div class="list-group-item">
+		{% for buff in server['buffs'] %}
+		<h4 class="list-group-item-heading" {% if not buff['active'] %} style="color:#999999;"{%endif%}>
+			<i class="fa fa-music"></i> Music Plugin <small>
+				{% if buff['active'] %}
+					{% if buff['remaining'] %}
+						{{buff['remaining']//(3600*24)}} days remaining
+					{%else%}
+						&infin;
+					{%endif%}
+				{% else %}
+				Inactive
+			{% endif %}
+		</small>
+		</h4>
+		{% endfor %}
+	</div>
+	<a href="{{url_for('shop', server_id=server.id)}}" class="list-group-item">
+		<h4 class="list-group-item-heading"><i class="fa fa-flask" aria-hidden="true"></i> Potion Shop</h4>
+		<p class="list-group-item-text">The only place to get potions to boost your server!</p>
+	</a>
+</div>

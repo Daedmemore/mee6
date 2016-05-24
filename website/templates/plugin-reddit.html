@@ -12,8 +12,9 @@
 							<input name=_csrf_token type=hidden value="{{ csrf }}">
 							<label class="control-label" for="announcement_channel">Display Channel</label>
 							<select class="form-control input-lg" id="display_channel" name="display_channel">
+								{{display_channel}}
 								{% for channel in guild_channels %}
-									<option value="{{channel.id}}"{%if channel.id == display_channel.id%} selected{%endif%}>#{{channel.name}}</option>
+									<option value="{{channel.id}}"{%if channel.id == display_channel%} selected{%endif%}>#{{channel.name}}</option>
 								{% endfor %}
 							</select>
 							<div class="well well-sm">

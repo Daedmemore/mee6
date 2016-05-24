@@ -1,0 +1,47 @@
+{% extends 'dash_base.html' %}
+{% block dash_content %}
+	<div class="container">
+		<div class="row">
+			{% include 'sidebar.html' %}
+
+			<div class="col-md-8">
+				<h3><i class="fa fa-flask"></i> Potion Shop <a href="{{url_for('donate')}}" class="btn-primary btn-xs"><i class="fa fa-gift"></i> get more points</a></h3>
+				{% include 'flash.html' %}<br />
+					<div class="col-md-4">
+						<div class="well">
+							<center>
+								<span style="font-size:2.0em;"><i class="fa fa-music" aria-hidden="true"></i></span><sub><strong>30</strong></sub><br />
+								<h5>Music Plugin 30</h5>
+								<p>
+								Enables the music plugin in your server for 30 days<br />
+								<h5><strong><i class="fa fa-gift"></i> 300</strong></h5>
+								<a href="{{url_for('buy', server_id=server.id)}}?item=music30" class="btn btn-primary">Buy</a>
+								</p>
+							</center>
+						</div>
+					</div>
+					<div class="col-md-4">
+						<div class="well">
+							<center>
+								<span style="font-size:2.7em;"> <i class="fa fa-music" aria-hidden="true"></i><sub>&infin;</sub></span><br />
+								<h5>Music Plugin Infinite</h5>
+								<p>
+								Enables the music plugin in your server for liiife!<br />
+								<h5><strong><i class="fa fa-gift"></i> 2500</strong></h5>
+								{% if not is_elligible %}
+								<a href="{{url_for('buy', server_id=server.id)}}?item=musicinfinite" class="btn btn-primary">Buy</a><br />
+							  {% else %}
+									<a href="{{url_for('buy', server_id=server.id)}}?item=musicinfinite&eb_promo=1" class="btn btn-primary">Free!</a><br />
+									Because you are an Early Backer!
+								{% endif %}
+								</p>
+							</center>
+						</div>
+					</div>
+					
+			</div>
+
+		</div>
+	</div>
+
+{% endblock %}

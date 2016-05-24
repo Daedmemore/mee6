@@ -28,9 +28,52 @@
 	{{ plugin.view(
 	'Music',
 	icon='music',
-	early_backers=True,
+	buff="music",
 	view='plugin_music',
 	description='Listen to music with your friends!',
+	server=server,
+	enabled_plugins=enabled_plugins
+	)}}
+{{ plugin.view(
+	'Help',
+	icon='question',
+	pretty_name='Help Me!',
+	view='plugin_help',
+	description='Enables the <strong>!help</strong> command.',
+	server=server,
+	enabled_plugins=enabled_plugins
+	)}}
+	{{ plugin.view(
+	'Streamers',
+	pretty_name='Twitch & co.',
+	icon='twitch',
+	view='plugin_streamers',
+	description='Get notified when your best <strong>Twitch</strong>, <strong>Hitbox</strong> and <strong>Beam</strong> streamers go live!',
+	server=server,
+	enabled_plugins=enabled_plugins
+	)}}
+	{{plugin.view(
+	'Reddit',
+	icon='reddit',
+	pretty_name='Reddit',
+	view='plugin_reddit',
+	description='Get the new posts of your favorite subreddits!',
+	server=server,
+	enabled_plugins=enabled_plugins
+	)}}
+	{{ plugin.view(
+	'Welcome',
+	icon="hand-spock-o",
+	view='plugin_welcome',
+	description='Display a welcome message for members that have joined the server!',
+	server=server,
+	enabled_plugins=enabled_plugins
+	)}}
+	{{ plugin.view(
+	'Logs',
+	icon="book",
+	view='plugin_logs',
+	description='Logs all the messages of your server!',
 	server=server,
 	enabled_plugins=enabled_plugins
 	)}}
@@ -52,48 +95,4 @@
 	server=server,
 	enabled_plugins=enabled_plugins
 	)}}
-	{{ plugin.view(
-	'Help',
-	icon='question',
-	pretty_name='Help Me!',
-	view='plugin_help',
-	description='Enables the <strong>!help</strong> command.',
-	server=server,
-	enabled_plugins=enabled_plugins
-	)}}
-	{{ plugin.view(
-	'Streamers',
-	pretty_name='Twitch & co.',
-	icon='twitch',
-	view='plugin_streamers',
-	description='Get notified when your best <strong>Twitch</strong>, <strong>Hitbox</strong> and <strong>Beam</strong> streamers go live!',
-	server=server,
-	enabled_plugins=enabled_plugins
-	)}}
-	{# plugin.view(
-	'Reddit',
-	icon='reddit',
-	pretty_name='Reddit',
-	view='plugin_reddit',
-	description='Get the new posts of your favorite subreddits!',
-	server=server,
-	enabled_plugins=enabled_plugins
-	)#}
-	{{ plugin.view(
-	'Welcome',
-	icon="hand-spock-o",
-	view='plugin_welcome',
-	description='Display a welcome message for members that have joined the server!',
-	server=server,
-	enabled_plugins=enabled_plugins
-	)}}
-	{{ plugin.view(
-	'Logs',
-	icon="book",
-	view='plugin_logs',
-	description='Logs all the messages of your server!',
-	server=server,
-	enabled_plugins=enabled_plugins
-	)}}
-
 </div>

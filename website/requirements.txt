@@ -4,3 +4,4 @@ redis
 gunicorn
 gevent
 pymongo
+paypalrestsdk

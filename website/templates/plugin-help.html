@@ -9,6 +9,16 @@
 				{% include 'flash.html' %}
 				<center>
 					<p>
+					<form method="POST" action="{{url_for('update_help', server_id=server.id)}}">
+						{% set csrf = csrf_token() %}
+							<input name="_csrf_token" type=hidden value="{{csrf}}">
+							<div class="checkbox">
+								<label>
+									<input type="checkbox" name="whisp" {% if whisp %} checked {%endif%}> Send the !help in Private Message</label>
+
+							</div>
+							<input type="submit" class="btn btn-primary" value="Update"><br /><br />
+					</form>
 					<img src="https://media.giphy.com/media/WRflm1O6tvbnG/giphy.gif">
 					<h1>Type <strong>!help</strong> in your chat ;) !</h1>
 					</p>

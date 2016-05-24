@@ -63,7 +63,7 @@
 $('.reset').click(function(e) {
 	e.preventDefault();
 	var $link = $(this);
-	bootbox.confirm("Do you really want to reset this player's xp? He will lose his level :'(", function (confirmation) {
+	bootbox.confirm("Do you really want to reset this player's xp? They will lose his level :'(", function (confirmation) {
 		confirmation && document.location.assign($link.attr('href'));
 	});
 });

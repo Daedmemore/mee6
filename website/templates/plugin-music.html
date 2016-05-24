@@ -10,11 +10,18 @@
 					<form id="music" method="POST" action="{{url_for('update_music', server_id=server['id'])}}">
 						<div class="form-group">
 							<input name=_csrf_token type=hidden value="{{ csrf }}">
-							<h3>Moderator Roles</h3>  
+							<h3>Music Requesters Roles</h3>
+							<input type="text" data-role="tagsinput" name="requesters_roles" class="req-roles"><br />
+							<div class="well well-sm">
+								By default, only the <strong>server managers</strong> can use the plugin.<br />
+								The Music Requesters can use the <strong>!add</strong> command freely. All the other commands will result in a vote.<br />
+								Just add <strong>@everyone</strong> if you want every member to be able to add songs.
+							</div>
+							<h3>Music Moderator Roles</h3>  
 							<input type="text" data-role="tagsinput" name="allowed_roles" class="roles"/><br />
 							<div class="well well-sm">
 								By default, only the <strong>server managers</strong> can use the plugin.<br />
-								If you want to give the access to every member, just add @everyone.
+								These roles can use <strong>EVERY</strong> commands, including <strong>!next</strong> and <strong>!join</strong>.
 							</div>
 							<script>
 $(function() {
@@ -35,8 +42,22 @@ $(function() {
 			source: roles.ttAdapter()
 		}
 	});
+	var elt2 = $('.req-roles');
+	elt2.tagsinput({
+		itemValue: 'id',
+		itemText: 'name',
+		typeaheadjs: {
+			name: 'roles',
+			displayKey: 'name',
+			source: roles.ttAdapter()
+		}
+	});
+
 	{% for role in allowed_roles %}
 		elt.tagsinput('add', {{role|tojson|safe}});
+	{% endfor %}
+	{% for role in requesters_roles %}
+		elt2.tagsinput('add', {{role|tojson|safe}});
 	{% endfor %}
 });
 							</script>

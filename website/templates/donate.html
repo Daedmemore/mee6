@@ -11,18 +11,27 @@
 						<p>Hi, I'm cookie, thanks for stopping by ;) .</p>
 					</center>
 					<p>
-					<strong>Mee6</strong> costs me time and money. Unfortunatly, we live in a world where <em>there's no such thing as a free meal</em>. So if you really like the bot and if you have some money to spare, you can support the project by making a donation.</p>
+					<strong>Mee6</strong> is entirely supported by contributions from the Discord community.</p>
 					<p>
-					The collected money will allow me to get more powerful <strong>servers</strong> and tackle some <strong>ambitious</strong> part of the developement of <strong>Mee6</strong>. <span style="font-size:0.4em"><strong>Someone said <em>music plugin</em>?</strong></span>
+					<strong>By donating, you'll earn points which can be used to buy potions in order to unlock some features like the Music Plugin.</strong>
 					</p>
-					<p>
-					As a little reward, for those who gave more than <strong>€3</strong>, you'll get the status of <strong>Early Backers</strong>! Yay! :D</p>
-					<p>
-					<strong>Early Backer</strong> will have an early access to exclusive new content and experimental plugins ;) . <span style="font-size:0.4em"><strong>MUSIC PLUGIN!!!</strong></span>
+					<p><br />
+						<div class="price-slider">
+            	<div class="col-sm-12">
+              	<div id="slider"></div>
+							</div>
+          	</div>
+					</p>
+					<p class="text-center">
+						You will earn <strong><i class="fa fa-gift"></i> <span id="points"></span> points</strong>
 					</p>
 					<p>
 					<center>
-						<a class="btn btn-home btn-lg" href="https://www.paypal.com/    cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=QQBJWZ6TNM9VY" target="_blank">I want to donate</a><br/>
+						<form method="POST" action="{{url_for('checkout')}}">
+							<input name="_csrf_token" type="hidden" value="{{ csrf_token() }}">
+							<input id="amount" name="amount" type="hidden">
+							<input type="submit" class="btn btn-lg btn-home" value="Donate">
+						</form>
 					</center>
 					</p>
 				</div>
@@ -31,4 +40,102 @@
 	</div>
 	</div>
 	</div>
+ <script src="https://code.jquery.com/ui/1.10.4/jquery-ui.min.js"></script>
+<script>
+$(document).ready(function() {
+          $("#slider").slider({
+              animate: true,
+              value:1,
+              min: 1,
+              max: 60,
+              step: 1,
+              slide: function(event, ui) {
+                  update(1,ui.value); //changed
+              }
+          });
+
+          //Added, set initial value.
+          $("#amount").val(1);
+          $("#amount-label").text(1);
+          
+          update();
+      });
+
+      //changed. now with parameter
+      function update(slider,val) {
+        //changed. Now, directly take value from ui.value. if not set (initial, will use current value.)
+        var $amount = slider == 1?val:$("#amount").val();
+
+         $( "#amount" ).val($amount);
+         $( "#amount-label" ).text($amount);
+				 $( "#points" ).text($amount*100);
+         $('#slider a').html('<label style="font-size:15px;"><span class="fa fa-chevron-left"></span> &euro;'+$amount+' <span class="fa fa-chevron-right"></span></label>');
+      }
+</script>
+<style>
+.ui-widget-content {
+	border: 1px solid #bdc3c7;
+	background: #006687;
+	color: #222222;
+	margin-top: 4px;
+}
+
+.ui-slider .ui-slider-handle {
+	position: absolute;
+	z-index: 2;
+	width: 5.2em;
+	height: 2.2em;
+	cursor: default;
+	margin: 0 -40px auto !important;
+	text-align: center;	
+	line-height: 30px;
+	color: #FFFFFF;
+	font-size: 15px;
+}
+
+.ui-slider .ui-slider-handle .glyphicon {
+	color: #FFFFFF;
+	margin: 0 3px; 
+	font-size: 11px;
+	opacity: 0.5;
+}
+
+.ui-corner-all {
+	border-radius: 20px;
+}
+
+.ui-slider-horizontal .ui-slider-handle {
+	top: -.9em;
+}
+
+.ui-state-default,
+.ui-widget-content .ui-state-default {
+	border: 1px solid #f9f9f9;
+	background: #006687;
+}
+
+.ui-slider-horizontal .ui-slider-handle {
+	margin-left: -0.5em;
+}
+
+.ui-slider .ui-slider-handle {
+	cursor: pointer;
+}
+
+.ui-slider a,
+.ui-slider a:focus {
+	cursor: pointer;
+	outline: none;
+}
+.price-slider {
+	margin-bottom: 70px;
+}
+
+.price-slider span {
+	font-weight: 200;
+	display: inline-block;
+	color: #fff;
+	font-size: 13px;
+}
+</style>
 {% endblock %}
