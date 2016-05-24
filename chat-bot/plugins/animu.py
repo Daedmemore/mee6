@@ -64,7 +64,7 @@ class AnimuAndMango(Plugin):
         if data == '':
             await self.mee6.send_message(
                 message.channel,
-                'I didn\'t found anything :cry: ...'
+                'I didn\'t find anything :cry: ...'
             )
             return
 
