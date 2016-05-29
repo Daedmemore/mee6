@@ -122,7 +122,7 @@ let queueUp = (music, message) => {
     };
     redisClient.rpush("Music."+guild.id+":request_queue", JSON.stringify(music), (error) => {
       if (error){
-        message.channel.sendMessage("An error happened when Queuing up the music...");
+        message.channel.sendMessage("An error happened when queuing up the music...");
         console.log(error);
       } 
       else
@@ -250,13 +250,11 @@ client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
                 e.message.channel.sendMessage("An error occured durring the search :frowning:");
                 return;
               }
-            });
-          }
-          else {
-            var url = arg;
-            youtubedl.getInfo(url, ['-f', "'bestaudio"], (err, info) => {
-              if (err) {
-                e.message.channel.sendMessage("An error occured, sorry :cry:...");
+              var video = videos[0];
+              url = "https://youtube.com/?v="+video.id.videoId;
+              youtubedl.getInfo(url, ['-f', "bestaudio"], (err, info) => {
+               if (err) {
+                e.message.channel.sendMessage("An error occurred, sorry :cry:...");
                 return;
               }
               var music = {
@@ -265,9 +263,31 @@ client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
                 thumbnail: info.thumbnail,
               };
               queueUp(music, e.message);
-            });
-          }
-        });
+
+              });
+            }
+            else {
+              e.message.channel.sendMessage("An error occurred during the search :frowning:");
+              return;
+            }
+          });
+        }
+        else {
+          var url = arg;
+          youtubedl.getInfo(url, ['-f', "'bestaudio"], (err, info) => {
+            if (err) {
+              e.message.channel.sendMessage("An error occurred, sorry :cry:...");
+              return;
+            }
+            var music = {
+              title: info.title,
+              url: info.url,
+              thumbnail: info.thumbnail,
+            };
+            queueUp(music, e.message);
+          });
+        }
+
       }
 
       if (e.message.content == "!join") {
