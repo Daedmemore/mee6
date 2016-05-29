@@ -4,6 +4,6 @@ version = "0.1.0"
 authors = ["cookie"]
 
 [dependencies]
-discord = "0.5.0"
+discord = {git="https://github.com/SpaceManiac/discord-rs"}
 redis = "0.5.3"
 rustc-serialize = "0.3.19"
