@@ -195,7 +195,13 @@ class Levels(Plugin):
         new_level = self._get_level_from_xp(player_xp)
         if new_level != lvl:
             # Updating rewards
-            await self.update_rewards(message.server)
+            try:
+                await self.update_rewards(message.server)
+            except Exception as e:
+                log.info('Cannot update rewards of server {}'.format(
+                    message.server.id
+                ))
+                log.info(e)
             # Check if announcement is good
             announcement_enabled = await storage.get('announcement_enabled')
             whisp = await storage.get('whisp')
