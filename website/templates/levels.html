@@ -6,9 +6,26 @@
 				<h1>How it works</h1>
 				<div class="panel panel-primary">
 					<div class="panel-body">
-						Each time you post a message you get a <strong>random</strong> number of <strong>XP</strong> between 5 and 10.<br /><br />
+						Each time you post a message you get a <strong>random</strong> number of <strong>XP</strong> between 15 and 25.<br /><br />
 						<strong>To avoid flood, you can only gain xp once per minute.</strong><br /><br />
 						In the server, you can type <strong>!rank</strong> to get your rank and your level.
+					</div>
+				</div>
+				<h2>Role Rewards</h2>
+				<div class="panel panel-primary">
+					<div class="panel-body">
+						{% for lvl in reward_levels %}
+							<h4>Lvl. {{lvl}}</h4>
+							{% for role in reward_roles[lvl] %}
+								<strong style="color:#{{role.color}}">
+									{{role.name}}
+								</strong><br />
+							{% endfor %}
+						{% else %}
+							<center>
+							No rewards to show :'(
+							</center>
+						{% endfor %}
 					</div>
 				</div>
 			</div>

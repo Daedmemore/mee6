@@ -26,7 +26,7 @@
 								<strong>Leaderboard: </strong><a href="{{url_for('levels', server_id=server['id'])}}" target="_blank">HERE</a> !
 							</div>
 
-							<label class="control-label" for="cooldown"><strong>!rank</strong> command cooldown</label>
+						<label class="control-label" for="cooldown"><strong>!rank</strong> command cooldown</label>
 						<input class="form-control input-lg" name="cooldown" value="{% if cooldown is defined %}{{cooldown}}{%else%}0{%endif%}" ype="text" id="cooldown">
 						<div class="well well-sm">
 							In order to avoid people flooding the <strong>!rank</strong> command, you can set a cooldown in seconds.
@@ -60,7 +60,32 @@ $(function() {
 	{% endfor %}
 });
 						</script>
-						<br />
+						<h3>Roles Rewards</h3>
+							<div class="well well-sm">
+								<strong>Disclaimer</strong> When a role is given as a reward, it could only be removed manually!
+							</div>
+							<table class="table table-striped table-hover">
+								<thead>
+								<tr>
+									<th>Role</th>
+									<th>Level</th>
+								</tr>
+								</thead>
+								<tbody>
+								{% for role in reward_roles %}
+								<tr>
+									<td><h5 style="font-weight: bold; color:#{{role.color}}">{{role.name}}</h5></td>
+									<td><select name="rolereward_{{role.id}}" class="form-control input-xs">
+												<option value="0">Not Rewarded</option>
+											{% for i in range(1, 100) %}
+												<option value="{{i}}" {% if role.level == i %}selected{% endif %}>{{i}}</option>
+											{% endfor %}
+											</select>
+									</td>
+								</tr>
+								{% endfor %}
+								</tbody>
+							</table>
 						<button type="submit" class="btn btn-primary">Update</button>
 						</div>
 					</form>

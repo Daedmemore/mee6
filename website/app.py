@@ -784,12 +784,24 @@ def plugin_levels(server_id):
         lambda r: r['name'] in db_banned_roles or r['id'] in db_banned_roles,
         guild_roles
     ))
+    reward_roles = list(map(
+        lambda r: {'name': r['name'],
+                   'id': r['id'],
+                   'color': hex(r['color']).split('0x')[1],
+                   'level': int(db.get('Levels.{}:reward:{}'.format(
+                       server_id,
+                       r['id'])) or 0)
+                   },
+        guild_roles
+    )
+    )
     cooldown = db.get('Levels.{}:cooldown'.format(server_id)) or 0
     return {
         'announcement': announcement,
         'announcement_enabled': announcement_enabled,
         'banned_roles': banned_roles,
         'guild_roles': guild_roles,
+        'reward_roles': reward_roles,
         'cooldown': cooldown,
         'whisp': whisp
     }
@@ -803,6 +815,13 @@ def update_levels(server_id):
     enable = request.form.get('enable')
     whisp = request.form.get('whisp')
     cooldown = request.form.get('cooldown')
+
+    for k, v in request.form.items():
+        if k.startswith('rolereward_'):
+            db.set('Levels.{}:reward:{}'.format(
+                server_id,
+                k.split('_')[1]),
+                v)
 
     try:
         cooldown = int(cooldown)
@@ -836,6 +855,19 @@ def update_levels(server_id):
     return redirect(url_for('plugin_levels', server_id=server_id))
 
 
+def get_level_xp(n):
+    return 5*(n**2)+50*n+100
+
+
+def get_level_from_xp(xp):
+    remaining_xp = int(xp)
+    level = 0
+    while remaining_xp >= get_level_xp(level):
+        remaining_xp -= get_level_xp(level)
+        level += 1
+    return level
+
+
 @app.route('/levels/<int:server_id>')
 def levels(server_id):
     is_admin = False
@@ -859,11 +891,28 @@ def levels(server_id):
         'name': db.get('server:{}:name'.format(server_id))
     }
 
+    guild = get_guild(server_id)
+    roles = guild['roles']
+    from collections import defaultdict
+    reward_roles = defaultdict(list)
+    reward_levels = []
+    for role in roles:
+        level = int(db.get('Levels.{}:reward:{}'.format(
+            server_id,
+            role['id'])) or 0)
+        if level == 0:
+            continue
+        reward_levels.append(level)
+        role['color'] = hex(role['color']).split('0x')[1]
+        reward_roles[level].append(
+            role
+        )
+    reward_levels = list(sorted(set(reward_levels)))
+
     _players = db.sort('Levels.{}:players'.format(server_id),
                        by='Levels.{}:player:*:xp'.format(server_id),
                        get=[
                            'Levels.{}:player:*:xp'.format(server_id),
-                           'Levels.{}:player:*:lvl'.format(server_id),
                            'Levels.{}:player:*:name'.format(server_id),
                            'Levels.{}:player:*:avatar'.format(server_id),
                            'Levels.{}:player:*:discriminator'.format(server_id),
@@ -874,22 +923,24 @@ def levels(server_id):
                        desc=True)
 
     players = []
-    for i in range(0, len(_players), 6):
-        lvl = int(_players[i+1])
+    for i in range(0, len(_players), 5):
+        total_xp = int(_players[i])
+        lvl = get_level_from_xp(total_xp)
+        lvl_xp = get_level_xp(lvl)
         x = 0
         for l in range(0, lvl):
-            x += 100*(1.2**l)
-        remaining_xp = int(int(_players[i]) - x)
+            x += get_level_xp(l)
+        remaining_xp = int(total_xp - x)
         player = {
             'total_xp': int(_players[i]),
             'xp': remaining_xp,
-            'lvl': _players[i+1],
-            'lvl_xp': int(100*(1.2**lvl)),
-            'xp_percent': floor(100*(remaining_xp)/(100*(1.2**lvl))),
-            'name': _players[i+2],
-            'avatar': _players[i+3],
-            'discriminator': _players[i+4],
-            'id': _players[i+5]
+            'lvl_xp': lvl_xp,
+            'lvl': lvl,
+            'xp_percent': floor(100*(remaining_xp)/lvl_xp),
+            'name': _players[i+1],
+            'avatar': _players[i+2],
+            'discriminator': _players[i+3],
+            'id': _players[i+4]
         }
         players.append(player)
     return render_template(
@@ -898,6 +949,8 @@ def levels(server_id):
         is_admin=is_admin,
         players=players,
         server=server,
+        reward_roles=reward_roles,
+        reward_levels=reward_levels,
         title="{} leaderboard - Mee6 bot".format(server['name'])
     )
 
