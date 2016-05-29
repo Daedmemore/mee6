@@ -72,7 +72,7 @@ $(function() {
 								</tr>
 								</thead>
 								<tbody>
-								{% for role in reward_roles %}
+									{% for role in reward_roles if role.id != server.id %}
 								<tr>
 									<td><h5 style="font-weight: bold; color:#{{role.color}}">{{role.name}}</h5></td>
 									<td><select name="rolereward_{{role.id}}" class="form-control input-xs">
