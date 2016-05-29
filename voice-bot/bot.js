@@ -59,7 +59,7 @@ client.Dispatcher.on(Events.VOICE_DISCONNECTED, e => {
   voice_connections_updater();
 });
 
-let isAllowed = (member, cb) => {
+let isModerator = (member, cb) => {
   var vc = member.getVoiceChannel();
   if (!vc) {
     cb(false);
@@ -83,7 +83,7 @@ let isAllowed = (member, cb) => {
   });
 };
 
-let isModerator = isAllowed;
+let isAllowed = (member, cb) => {cb(true); return;};
 
 let isRequester = (member, cb) => {
   isModerator(member, (check) => {
@@ -106,7 +106,7 @@ let isRequester = (member, cb) => {
       }
 
       cb(false);
-    }
+    });
   });
 };
 
@@ -208,84 +208,98 @@ client.Dispatcher.on(Events.MESSAGE_CREATE, e => {
         return
       var command = '!add';
       if (e.message.content.startsWith(command + ' ')){
-        var arg = e.message.content.substring(command.length+1, e.message.content.length);
-        if (!arg.startsWith("http")) {
-          var search = arg;
-          var searchURL = 'https://www.googleapis.com/youtube/v3/search' + 
-            '?part=snippet&q='+escape(search)+'&key='+apiKey;
-          request(searchURL, (error, response) => {
-            if (!error) {
-              var payload = JSON.parse(response.body);
-              if (payload['items'].length == 0) {
-                e.message.channel.sendMessage("Didn't find anything :cry:!");
-                return
+        isRequester(e.message.message, (is_requester) => {
+          if (!is_requester) {
+            return
+          }
+          var arg = e.message.content.substring(command.length+1, e.message.content.length);
+          if (!arg.startsWith("http")) {
+            var search = arg;
+            var searchURL = 'https://www.googleapis.com/youtube/v3/search' + 
+              '?part=snippet&q='+escape(search)+'&key='+apiKey;
+            request(searchURL, (error, response) => {
+              if (!error) {
+                var payload = JSON.parse(response.body);
+                if (payload['items'].length == 0) {
+                  e.message.channel.sendMessage("Didn't find anything :cry:!");
+                  return
+                }
+              
+                var videos = payload.items.filter(item => item.id.kind === 'youtube#video');
+                if (videos.length === 0){
+                  e.message.channel.sendMessage("Didn't find any video :cry:!");
+                  return
+                }
+                var video = videos[0];
+                url = "https://youtube.com/?v="+video.id.videoId;
+                youtubedl.getInfo(url, ['-f', "bestaudio"], (err, info) => {
+                 if (err) {
+                  e.message.channel.sendMessage("An error occured, sorry :cry:...");
+                  return;
+                }
+                var music = {
+                 title: info.title,
+                 url: info.url,
+                 thumbnail: info.thumbnail,
+                };
+                queueUp(music, e.message);
+
+                });
               }
-            
-              var videos = payload.items.filter(item => item.id.kind === 'youtube#video');
-              if (videos.length === 0){
-                e.message.channel.sendMessage("Didn't find any video :cry:!");
-                return
+              else {
+                e.message.channel.sendMessage("An error occured durring the search :frowning:");
+                return;
               }
-              var video = videos[0];
-              url = "https://youtube.com/?v="+video.id.videoId;
-              youtubedl.getInfo(url, ['-f', "bestaudio"], (err, info) => {
-               if (err) {
+            });
+          }
+          else {
+            var url = arg;
+            youtubedl.getInfo(url, ['-f', "'bestaudio"], (err, info) => {
+              if (err) {
                 e.message.channel.sendMessage("An error occured, sorry :cry:...");
                 return;
               }
               var music = {
-               title: info.title,
-               url: info.url,
-               thumbnail: info.thumbnail,
+                title: info.title,
+                url: info.url,
+                thumbnail: info.thumbnail,
               };
               queueUp(music, e.message);
-
-              });
-            }
-            else {
-              e.message.channel.sendMessage("An error occured durring the search :frowning:");
-              return;
-            }
-          });
-        }
-        else {
-          var url = arg;
-          youtubedl.getInfo(url, ['-f', "'bestaudio"], (err, info) => {
-            if (err) {
-              e.message.channel.sendMessage("An error occured, sorry :cry:...");
-              return;
-            }
-            var music = {
-              title: info.title,
-              url: info.url,
-              thumbnail: info.thumbnail,
-            };
-            queueUp(music, e.message);
-          });
-        }
-
+            });
+          }
+        });
       }
 
       if (e.message.content == "!join") {
-        var voiceChannels = e.message.guild.voiceChannels
-          .filter( vc => vc.members.map(m => m.id).indexOf(e.message.author.id) > -1 );
-        if (voiceChannels.length > 0) {
-          voiceChannels[0].join(false, false);
-          let check = (msg) => {
-            var voiceConnectionInfo = client.VoiceConnections.getForGuild(msg.guild);
-            if (voiceConnectionInfo) {
-              if (voiceConnectionInfo.voiceConnection != null) {
-                msg.edit("Successfully connected :ok_hand:!");
+        var isBotInVoice = client.VoiceConnections.filter(info => {
+          if (!info.voiceConnection)
+            return false;
+          return info.voiceConnection.guildId == e.message.guild.id;
+        }).length > 0;
+        isModerator(e.message.author, (moderator) => {
+          if (!moderator && isBotInVoice)
+            return;
+          var voiceChannels = e.message.guild.voiceChannels
+            .filter( vc => vc.members.map(m => m.id).indexOf(e.message.author.id) > -1 );
+          if (voiceChannels.length > 0) {
+            voiceChannels[0].join(false, false);
+            let check = (msg) => {
+              var voiceConnectionInfo = client.VoiceConnections.getForGuild(msg.guild);
+              if (voiceConnectionInfo) {
+                if (voiceConnectionInfo.voiceConnection != null) {
+                  msg.edit("Successfully connected :ok_hand:!");
+                }
               }
-            }
-            else
-              setTimeout(()=>{check(msg)}, 1);
-          };
-          e.message.channel.sendMessage("Connecting to Voice... Please wait...").then((msg, error) => {
-            check(msg);
-          });
-        }
-      }
+              else
+                setTimeout(()=>{check(msg)}, 1);
+            };
+            e.message.channel.sendMessage("Connecting to Voice... Please wait...").then((msg, error) => {
+              check(msg);
+            });
+          }
+
+        });
+       }
     
       if (e.message.content == "!play"
           || e.message.content == "!next"
