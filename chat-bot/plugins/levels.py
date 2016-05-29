@@ -1,6 +1,7 @@
 from plugin import Plugin
 from random import randint
 import logging
+import discord
 import asyncio
 log = logging.getLogger('discord')
 
@@ -232,6 +233,16 @@ class Levels(Plugin):
                             'role': role})
         return rewards
 
+    async def add_role(self, member, role):
+        try:
+            await self.mee6.add_roles(member, role)
+        except discord.errors.HTTPException as e:
+            if e.response.status != 429:
+                raise(e)
+            retry = float(e.response.headers['Retry-After']) / 1000.0
+            await asyncio.sleep(retry)
+            return (await self.add_role(member, role))
+
     async def update_rewards(self, server):
         rewards = await self.get_rewards(server)
         storage = await self.get_storage(server)
@@ -250,7 +261,7 @@ class Levels(Plugin):
                 if role in player.roles:
                     continue
                 try:
-                    await self.mee6.add_roles(player, role)
+                    await self.add_role(player, role)
                 except Exception as e:
                     log.info('Cannot give {} the {} reward'.format(player.id,
                                                                    role.id))
@@ -258,7 +269,7 @@ class Levels(Plugin):
 
     async def on_ready(self):
         while True:
-            for server in self.mee6.servers:
+            for server in list(self.mee6.servers):
                 plugin_enabled = 'Levels' in await self.mee6.db.redis.smembers(
                     'plugins:'+server.id
                 )
