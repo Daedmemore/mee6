@@ -993,6 +993,8 @@ def plugin_welcome(server_id):
     gb_message = db.get('Welcome.{}:gb_message'.format(server_id))
     db_welcome_channel = db.get('Welcome.{}:channel_name'.format(server_id))
     guild_channels = get_guild_channels(server_id, voice=False)
+    gb_enabled = db.get('Welcome.{}:gb_disabled'.format(server_id)) \
+        is None
     welcome_channel = None
     for channel in guild_channels:
         if channel['name'] == db_welcome_channel or \
@@ -1015,6 +1017,7 @@ def plugin_welcome(server_id):
         'private': private,
         'gb_message': gb_message,
         'guild_channels': guild_channels,
+        'gb_enabled': gb_enabled,
         'welcome_channel': welcome_channel
     }
 
@@ -1032,7 +1035,14 @@ def update_welcome(server_id):
     gb_message = request.form.get('gb_message')
     gb_message = mention_decoder(gb_message)
 
+    gb_enabled = request.form.get('gb_enabled')
+
     channel = request.form.get('channel')
+
+    if gb_enabled:
+        db.delete('Welcome.{}:gb_disabled'.format(server_id))
+    else:
+        db.set('Welcome.{}:gb_disabled'.format(server_id), "1")
 
     if private:
         db.set('Welcome.{}:private'.format(server_id), "1")

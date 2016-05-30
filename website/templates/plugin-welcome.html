@@ -22,6 +22,11 @@
 							</div>
 							<label class="control-label" for="gb_message">Good Bye message</label>
 							<input class="form-control input-lg gb_message" name="gb_message" value="{{gb_message}}" ype="text" id="gb_message">
+							<div class="checkbox">
+								<label>
+									<input type="checkbox" name="gb_enabled" {% if gb_enabled %}checked{% endif %}> Enabled
+								</label>
+							</div>
 							<div class="well well-sm">
 								<strong>Tips: </strong> <i>{user}</i> refers to the leaving member, <i>{server}</i> to your server name.
 							</div>
@@ -32,6 +37,7 @@
 								{% endfor %}
 							</select>
 							<div class="well well-sm">
+								This is the channel where the welcome and bye messages will be posted.<br />
 								<strong>Warning: </strong>Mee6 should have the permission to post there.
 							</div>
 							<button type="submit" class="btn btn-primary">Update</button>
