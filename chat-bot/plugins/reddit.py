@@ -15,7 +15,7 @@ class Reddit(Plugin):
     message_format = "`New post from /r/{subreddit}`\n\n"\
                      "**{title}** *by {author}*\n"\
                      "{content}\n"\
-                     "**Link** {link}"
+                     "**Link** {link} \n \n"
 
     async def get_posts(self, subreddit):
         """Gets the n last posts of a subreddit
@@ -45,35 +45,48 @@ class Reddit(Plugin):
 
         return posts[:4]
 
-    async def display_posts(self, subreddit, posts, server):
+    async def display_posts(self, posts, server):
         """Display a list of posts into the corresponding destination channel.
 
         This function only displays posts that hasn't been posted previously.
         """
-        posts = reversed(posts)
         storage = await self.get_storage(server)
         destination_id = await storage.get('display_channel')
         destination = discord.utils.get(server.channels, id=destination_id)
         if destination is None:
             return
 
-        posted = await storage.smembers(subreddit+':posted')
-        for post in posts:
-            was_posted = post['id'] in posted
-            if was_posted:
+        message_batches = [""]
+        post_id_batches = [[]]
+        for subreddit, posts in posts.items():
+            posted = await storage.smembers(subreddit+':posted')
+            subreddit_posts = reversed(posts)
+            for post in subreddit_posts:
+                was_posted = post['id'] in posted
+                if was_posted:
+                    continue
+
+                selftext = post['selftext'] or ""
+                message = self.message_format.format(
+                    title=post['title'],
+                    subreddit=post['subreddit'],
+                    author=post['author'],
+                    content=selftext[:300],
+                    link="http://redd.it/"+post['id']
+                )
+                if len(message_batches[-1]+message) > 2000:
+                    message_batches.append(message)
+                    post_id_batches.append([(subreddit, post['id'])])
+                else:
+                    message_batches[-1] += message
+                    post_id_batches[-1].append((subreddit, post['id']))
+
+        for message, ids in zip(message_batches, post_id_batches):
+            if message == "":
                 continue
-
-            selftext = post['selftext'] or ""
-            message = self.message_format.format(
-                title=post['title'],
-                subreddit=post['subreddit'],
-                author=post['author'],
-                content=selftext[:300],
-                link="http://redd.it/"+post['id']
-            )
-
             await self.mee6.send_message(destination, message)
-            await storage.sadd(subreddit+':posted', post['id'])
+            for subreddit, id in ids:
+                await storage.sadd(subreddit+':posted', id)
 
     async def get_all_subreddits_posts(self):
         all_subreddits = []
@@ -108,13 +121,15 @@ class Reddit(Plugin):
 
                         storage = await self.get_storage(server)
                         subreddits = await storage.smembers('subs')
+                        posts = {}
                         for subreddit in subreddits:
                             subreddit_posts = all_subreddits_posts.get(
                                 subreddit,
                                 []
                             )
-                            await self.display_posts(subreddit,
-                                                    subreddit_posts,
+                            posts[subreddit] = subreddit_posts
+
+                        await self.display_posts(posts,
                                                  server)
                     except Exception as e:
                         log.info("An error occured in Reddit plugin with"
