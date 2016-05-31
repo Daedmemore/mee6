@@ -924,6 +924,8 @@ def levels(server_id):
 
     players = []
     for i in range(0, len(_players), 5):
+        if not _players[i]:
+            continue
         total_xp = int(_players[i])
         lvl = get_level_from_xp(total_xp)
         lvl_xp = get_level_xp(lvl)
