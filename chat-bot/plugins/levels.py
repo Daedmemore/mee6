@@ -7,12 +7,9 @@ log = logging.getLogger('discord')
 
 
 def check_add_role_perm(adder_roles, role):
-    manage_role_perms = False
-    for adder_role in adder_roles:
-        manage_role_perms = adder_role.permissions.manage_roles
-
+    manage_role_perms = any(map(lambda r: r.permissions.manage_roles,
+                                adder_roles))
     highest_role = max(adder_roles, key=lambda r: r.position)
-
     return manage_role_perms and role.position < highest_role.position
 
 
