@@ -5,3 +5,4 @@ gunicorn
 gevent
 pymongo
 paypalrestsdk
+setproctitle
