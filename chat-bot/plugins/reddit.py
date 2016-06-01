@@ -43,7 +43,7 @@ class Reddit(Plugin):
             log.info(e)
             return []
 
-        return posts[:4]
+        return posts[:2]
 
     async def display_posts(self, posts, server):
         """Display a list of posts into the corresponding destination channel.
