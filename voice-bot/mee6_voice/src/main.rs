@@ -36,11 +36,13 @@ struct MusicBot {
     redis: redis::Connection
 }
 
+// Adds a music to the queue
 fn queue_up(rcon: &redis::Connection, music: &Music, guild_id:&discord::model::ServerId) {
     let json_music = json::encode(music).unwrap();
     let key = format!("Music.{}:request_queue", guild_id.0);
     let _ : () = rcon.rpush(key, json_music).unwrap();
 }
+
 
 fn pop_out(rcon: &redis::Connection, guild_id:&discord::model::ServerId) -> Music {
     let key = format!("Music.{}:request_queue", guild_id.0);
@@ -152,10 +154,9 @@ pub fn main() {
             },
         };
         bot.state.update(&event);
-
         match event {
             Event::MessageCreate(message) => {
-                let channel = &bot.state.find_channel(&message.channel_id);
+                let mut channel = bot.state.find_channel(&message.channel_id);
                 match channel {
                     Some(ChannelRef::Public(server, channel)) => {
                         if is_music_enabled(&bot.redis, &server.id) {
