@@ -65,11 +65,17 @@ def get_user(token):
         discord_token_str = db.get('user:{}:discord_token'.format(
             token['user_id']
         ))
+        if not discord_token_str:
+            return None
         token = json.loads(discord_token_str)
 
     discord = make_session(token=token)
 
-    req = discord.get(API_BASE_URL + '/users/@me')
+    try:
+        req = discord.get(API_BASE_URL + '/users/@me')
+    except Exception:
+        return None
+
     if req.status_code != 200:
         abort(req.status_code)
 
@@ -195,6 +201,8 @@ def confirm_login():
 
     # Fetch the user
     user = get_user(discord_token)
+    if not user:
+        return redirect(url_for('logout'))
     # Generate api_key from user_id
     serializer = JSONWebSignatureSerializer(app.config['SECRET_KEY'])
     api_key = str(serializer.dumps({'user_id': user['id']}))
@@ -235,6 +243,43 @@ def logout():
     session.clear()
     return redirect(url_for('index'))
 
+
+@app.route('/recovery')
+@require_auth
+def recovery():
+    return render_template('recovery.html')
+
+
+@app.route('/recovery-confirm', methods=['POST'])
+@require_auth
+def recovery_confirm():
+    email = request.form.get('email')
+    user = get_user(session['api_token'])
+    if not user:
+        return redirect(url_for('logout'))
+    if not email:
+        flash('Please enter an email', 'warning')
+        return redirect(url_for('recovery'))
+
+    email = email.lower()
+    amount = db.get('recover:'+email)
+    if not amount:
+        flash('Sorry we didn\'t find any of your contributions. Or we already gave you back your points.'
+              'If you think it\'s a mistake, please join our support discord'
+              ' server and send a private message to Cookie', 'warning')
+        return redirect(url_for('recovery'))
+
+    amount = int(amount)
+    points = amount*100
+    db.set('user:'+user['id']+':points', user['points']+points)
+    db.delete('recover:'+email)
+    flash('We gave you back your '+str(points)+' points. You can now purchase back the '
+          'Music potion.', 'success')
+    user = get_user(session['api_token'])
+    if not user:
+        return redirect(url_for('logout'))
+    return redirect(url_for('recovery'))
+
 """
     DISCORD RELATED PARSERS
 """
@@ -248,8 +293,8 @@ def typeahead_members(_members):
             'name': m['user']['username'],
         }
         if m['user']['avatar']:
-            user['image'] = 'https://cdn.discordapp.com/"\
-                "avatars/{}/{}.jpg'.format(
+            user['image'] = 'https://cdn.discordapp.com/'\
+                'avatars/{}/{}.jpg'.format(
                 m['user']['id'],
                 m['user']['avatar']
             )
@@ -288,7 +333,7 @@ def get_mention_decoder(server_id, members=None):
     for member in _members:
         key = member['user']['username']+'#'+member['user']['discriminator']
         members[key] = "<@{}>".format(member['user']['id'])
-    pattern = r'@(.*?#[0-9]{4})'
+    pattern = r'@(((?!@).)*?#[0-9]{4})'
 
     def repl(k):
         key = k.groups()[0]
@@ -318,6 +363,8 @@ def about():
 @require_auth
 def thanks():
     user = get_user(session['api_token'])
+    if not user:
+        return redirect(url_for('logout'))
     return render_template('thanks.html',
                            points=user['points'])
 
@@ -340,6 +387,8 @@ def select_server():
         return redirect(url_for('dashboard', server_id=int(guild_id)))
 
     user = get_user(session['api_token'])
+    if not user:
+        return redirect(url_for('logout'))
     guilds = get_user_guilds(session['api_token'])
     user_servers = sorted(
         get_user_managed_servers(user, guilds),
@@ -375,6 +424,8 @@ def require_bot_admin(f):
     def wrapper(*args, **kwargs):
         server_id = kwargs.get('server_id')
         user = get_user(session['api_token'])
+        if not user:
+            return redirect(url_for('logout'))
         guilds = get_user_guilds(session['api_token'])
         user_servers = get_user_managed_servers(user, guilds)
         if str(server_id) not in map(lambda g: g['id'], user_servers):
@@ -401,6 +452,8 @@ def plugin_page(plugin_name, buff=None):
         @wraps(f)
         def wrapper(server_id):
             user = get_user(session['api_token'])
+            if not user:
+                return redirect(url_for('logout'))
             if buff:
                 not_buff = db.get('buffs:'+str(server_id)+':'+buff) is None
                 if not_buff:
@@ -437,6 +490,8 @@ def plugin_page(plugin_name, buff=None):
 @my_dash
 def dashboard(server_id):
     user = get_user(session['api_token'])
+    if not user:
+        return redirect(url_for('logout'))
     guilds = get_user_guilds(session['api_token'])
     server = list(filter(lambda g: g['id'] == str(server_id), guilds))[0]
     enabled_plugins = db.smembers('plugins:{}'.format(server_id))
@@ -459,6 +514,8 @@ def dashboard(server_id):
 @my_dash
 def notification(server_id):
     user = get_user(session['api_token'])
+    if not user:
+        return redirect(url_for('logout'))
     ignored = db.get('user:{}:ignored'.format(user['id']))
     if ignored:
         db.delete('user:{}:ignored'.format(user['id']))
@@ -534,6 +591,8 @@ def shop(server_id):
     last_buys = db.lrange('shop:buys', 0, 10) or []
     last_buys = list(map(json.loads, last_buys))
     user = get_user(session['api_token'])
+    if not user:
+        return redirect(url_for('logout'))
 
     is_earlybacker = user['id'] in db.smembers('early_backers')
     is_elligible = is_earlybacker and user['id'] not in db.smembers('eb_served')
@@ -559,6 +618,8 @@ def buy(server_id):
         return redirect(url_for('index'))
     item = BUFFS[item]
     user = get_user(session['api_token'])
+    if not user:
+        return redirect(url_for('logout'))
 
     # EARLY BACKER PROMO
     eb_promo = request.args.get('eb_promo')
@@ -647,6 +708,8 @@ def checkout_confirm():
         return redirect(url_for('index'))
 
     user = get_user(session['api_token'])
+    if not user:
+        return redirect(url_for('logout'))
     payment = paypalrestsdk.Payment.find(request.args.get('paymentId'))
     if payment.execute({"payer_id": request.args.get('PayerID')}):
         amount = float(payment.transactions[0]["amount"]["total"])
@@ -872,8 +935,11 @@ def get_level_from_xp(xp):
 def levels(server_id):
     is_admin = False
     if session.get('api_token'):
+        user = get_user(session['api_token'])
+        if not user:
+            return redirect(url_for('logout'))
         user_servers = get_user_managed_servers(
-            get_user(session['api_token']),
+            user,
             get_user_guilds(session['api_token'])
         )
         is_admin = str(server_id) in list(map(lambda s: s['id'], user_servers))
@@ -891,8 +957,8 @@ def levels(server_id):
         'name': db.get('server:{}:name'.format(server_id))
     }
 
-    guild = get_guild(server_id)
-    roles = guild['roles']
+    guild = get_guild(server_id) or {}
+    roles = guild.get('roles', [])
     from collections import defaultdict
     reward_roles = defaultdict(list)
     reward_levels = []
@@ -1255,11 +1321,13 @@ def update_streamers(server_id):
     streamers = request.form.get('streamers').split(',')
     beam_streamers = request.form.get('beam_streamers').split(',')
     hitbox_streamers = request.form.get('hitbox_streamers').split(',')
+    print(hitbox_streamers)
     db.set('Streamers.{}:announcement_channel'.format(server_id),
            announcement_channel)
     db.set('Streamers.{}:announcement_msg'.format(server_id), announcement_msg)
     db.delete('Streamers.{}:streamers'.format(server_id))
     db.delete('Streamers.{}:beam_streamers'.format(server_id))
+    db.delete('Streamers.{}:hitbox_streamers'.format(server_id))
     db.delete('Streamers.{}:twitch_streamers'.format(server_id))
     for streamer in streamers:
         if streamer != "":
@@ -1407,8 +1475,6 @@ def plugin_music(server_id):
 def update_music(server_id):
     allowed_roles = request.form.get('allowed_roles', '').split(',')
     requesters_roles = request.form.get('requesters_roles', '').split(',')
-    print(allowed_roles)
-    print(requesters_roles)
     db.delete('Music.{}:allowed_roles'.format(server_id))
     db.delete('Music.{}:requesters_roles'.format(server_id))
     for role in allowed_roles:
@@ -1430,8 +1496,11 @@ def request_playlist(server_id):
 
     is_admin = False
     if session.get('api_token'):
+        user = get_user(session['api_token'])
+        if not user:
+            return redirect(url_for('logout'))
         user_servers = get_user_managed_servers(
-            get_user(session['api_token']),
+            user,
             get_user_guilds(session['api_token'])
         )
         is_admin = str(server_id) in list(map(lambda s: s['id'], user_servers))

@@ -1,0 +1,24 @@
+{% extends 'full-page.html' %}
+{% block content %}
+	<div class="jumbotron home-jumbotron">
+		<div class="container">
+			<div class="row">
+				<div class="col-md-offset-2 col-md-8 animated bounceInLeft v-align">
+					<center>
+						<h1>Points Recovery</h1>
+						{% set csrf =  csrf_token() %}
+						{% include 'flash.html' %}
+						<form method="POST" action="{{url_for('recovery_confirm')}}">
+							<input name=_csrf_token type=hidden value="{{ csrf }}">
+						<label for="email">Please enter the paypal email address you donated with</label>
+						<input type="text" name="email" class="form-control" placeholder="Paypal Email Address"><br />
+					<button type="submit" class="btn btn-warning">Get My Points Back</button>
+						</form>
+					</center>
+					</div>
+			</div>
+		</div>
+	</div>
+	</div>
+	</div>
+{% endblock %}

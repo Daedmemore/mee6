@@ -1,15 +1,13 @@
 <div id="navbar" class="navbar-collapse collapse">
-	<ul class="nav navbar-nav pull-right">
-		<li><a href="{{url_for('index')}}"><i class="fa fa-home"></i> Home</a></li>
+	<ul class="nav navbar-nav pull-left">
 		<li><a href="{{url_for('about')}}"><i class="fa fa-question"></i> About</a></li>
 		<li><a href="{{url_for('donate')}}"><i class="fa fa-gift"></i> Donate</a></li>
-		<li><a href="#" class="dropdown-toggle" data-toggle="dropdown" id="community"><i class="fa fa-comment"></i> Community<b class="caret"></b></a>
-			<ul class="dropdown-menu" aria-labelledby="community">
-				<li><a href="https://discord.gg/0tOgeGSG9kVbtw7u" target="_blank">Discord</a></li>
-				<li><a target="_blank" href="https://github.com/cookkkie/mee6">Github</a></li>
-			</ul>
-		</li>
-		<li><a href="https://discord.gg/0tOgeGSG9kWI0Jti"><i class="fa fa-support"></i> Support</a></li>
+		<li><a target="_blank" href="https://discord.gg/0tOgeGSG9kYFepgL"><i class="fa fa-support"></i> Support</a></li>
+	</ul>
+	<ul class="nav navbar-nav pull-right">
+		<li><a href="http://twitter.com/mee6bot" target="_blank" style="padding-left:5px; padding-right:5px;"><i class="fa fa-twitter"></i></a></li>
+		<li><a href="https://discord.gg/0tOgeGSG9kV0jasj" target="_blank" style="padding-left:5px; padding-right:5px;"><i class="icon-discord"></i></a></li>
+		<li><a href="http://github.com/cookkkie/mee6" target="_blank" style="padding-left:5px; padding-right:5px;"><i class="fa fa-github"></i></a></li>
 		{% if session['user'] is defined %}
 			<li class="dropdown">
 				<a href="#" class="dropdown-toggle" data-toggle="dropdown">

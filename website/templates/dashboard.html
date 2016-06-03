@@ -1,7 +1,19 @@
 {% extends 'dash_base.html' %}
 {% block dash_content %}
 	<div class="container">
-
+		<div class="row">
+			<div class="col-md-12">
+<div class="alert alert-dismissible alert-warning">
+  <button type="button" class="close" data-dismiss="alert">&times;</button>
+	<strong>  <h4>Database Roll-back!</h4>
+  <p>Mee6 experienced a big database Roll-back :( ...</p>
+	<p>A lot of data has been completly lost. Unfortunatly the <strong>XP</strong> than you gained these last 3 weeks have been lost...</p>
+	<p style="font-size:14px;">If you bought a Music Plugin or a Music Plugin Infinite, <a href="{{url_for('recovery')}}" style="color:#FFF; text-decoration:underline;">CLICK HERE</a> to recover your points.</p>
+	<p>I'm really sorry about that bug... It will not happen again!</p>
+	</strong>
+</div>	
+			</div>
+		</div>
 		<div class="row">
 			<div class="col-md-4">
 				{% include 'plugins.html' %}

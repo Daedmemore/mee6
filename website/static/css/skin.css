@@ -3,6 +3,11 @@
     padding-top: 10px;
 }
 
+.navbar {
+    font-weight:500;
+    font-size:14px;
+}
+
 .beta-badge{
     background-color: #006687;
 }

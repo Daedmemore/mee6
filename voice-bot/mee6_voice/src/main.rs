@@ -76,7 +76,7 @@ fn is_member_moderator(rcon: &redis::Connection, guild_id:&discord::model::Serve
 //// CMDS HANDLING
 ////////////////////
 
-fn handle_join(bot : &mut MusicBot, message : &discord::model::Message, server : &discord::model::LiveServer, channel : &discord::model::PublicChannel) {
+fn handle_join(bot : &MusicBot, message : &discord::model::Message, server : &discord::model::LiveServer, channel : &discord::model::PublicChannel) {
     let voice = bot.connection.voice(server.id);
     let voice_channel = voice.current_channel();
     let allowed = match voice_channel {
@@ -114,23 +114,23 @@ fn handle_join(bot : &mut MusicBot, message : &discord::model::Message, server :
     bot.client.send_message(&message.channel_id, &response, "", false);
 }
 
-fn handle_add(bot : &mut MusicBot, message : &discord::model::Message, server : &discord::model::LiveServer, channel : &discord::model::PublicChannel) {
+fn handle_add(bot : &MusicBot, message : &discord::model::Message, server : &discord::model::LiveServer, channel : &discord::model::PublicChannel) {
     println!("received add");
 }
 
-fn handle_play(bot : &mut MusicBot, message : &discord::model::Message, server : &discord::model::LiveServer, channel : &discord::model::PublicChannel) {
+fn handle_play(bot : &MusicBot, message : &discord::model::Message, server : &discord::model::LiveServer, channel : &discord::model::PublicChannel) {
     println!("received play");
 }
 
-fn handle_next(bot : &mut MusicBot, message : &discord::model::Message, server : &discord::model::LiveServer, channel : &discord::model::PublicChannel) {
+fn handle_next(bot : &MusicBot, message : &discord::model::Message, server : &discord::model::LiveServer, channel : &discord::model::PublicChannel) {
     println!("received next");
 }
 
-fn handle_playlist(bot : &mut MusicBot, message : &discord::model::Message, server : &discord::model::LiveServer, channel : &discord::model::PublicChannel) {
+fn handle_playlist(bot : &MusicBot, message : &discord::model::Message, server : &discord::model::LiveServer, channel : &discord::model::PublicChannel) {
     println!("received playlist");
 }
 
-fn handle_leave(bot : &mut MusicBot, message : &discord::model::Message, server : &discord::model::LiveServer, channel : &discord::model::PublicChannel) {
+fn handle_leave(bot : &MusicBot, message : &discord::model::Message, server : &discord::model::LiveServer, channel : &discord::model::PublicChannel) {
     println!("received leave");
 }
 
@@ -164,12 +164,12 @@ pub fn main() {
                             let first_word = split.next().unwrap_or("");
                             
                             match first_word {
-                                "!join" => {handle_join(&mut bot, &message, &server, &channel);}
-                                "!add" => {handle_add(&mut bot, &message, &server, &channel);}
-                                "!play" => {handle_play(&mut bot, &message, &server, &channel);}
-                                "!next" => {handle_next(&mut bot, &message, &server, &channel);}
-                                "!playlist" => {handle_playlist(&mut bot, &message, &server, &channel);}
-                                "!leave" => {handle_leave(&mut bot, &message, &server, &channel);}
+                                "!join" => {handle_join(&bot, &message, &server, &channel);}
+                                "!add" => {handle_add(&bot, &message, &server, &channel);}
+                                "!play" => {handle_play(&bot, &message, &server, &channel);}
+                                "!next" => {handle_next(&bot, &message, &server, &channel);}
+                                "!playlist" => {handle_playlist(&bot, &message, &server, &channel);}
+                                "!leave" => {handle_leave(&bot, &message, &server, &channel);}
                                 _ => {}
                             }
                         }
