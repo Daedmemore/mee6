@@ -1011,6 +1011,13 @@ def levels(server_id):
             'id': _players[i+4]
         }
         players.append(player)
+
+    json_format = request.args.get('json')
+    if json_format:
+        return jsonify({'server': server,
+                        'reward_roles': reward_roles,
+                        'players': players})
+
     return render_template(
         'levels.html',
         small_title="Leaderboard",
