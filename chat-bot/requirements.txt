@@ -3,3 +3,4 @@ git+https://github.com/cookkkie/discord.py.git@async
 aioredis
 motor
 aiomeasures
+BeautifulSoup4

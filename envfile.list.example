@@ -41,3 +41,6 @@ PAYPAL_CLIENT_SECRET=
 
 # Mee6 default playing game
 MEE6_GAME=
+
+#IMGUR
+IMGUR_ID=

@@ -30,8 +30,8 @@ $('#add').click(function(){
 							<tr>
 								<th>Command</th>
 								<th>Message</th>
-								<th>Edit</th>
-								<th>Delete</th>
+								<th>Permissions</th>
+								<th>Actions</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -39,14 +39,17 @@ $('#add').click(function(){
 								<tr>
 									<td><h4><strong>{{cmd['name']}}</strong></h4></td>
 									<td>
-										<form action="{{url_for('add_command', server_id=server.id)}}?edit=1" method='post' id="{{cmd['name'][1:]}}">
+										<form action="{{url_for('add_command', server_id=server.id)}}?edit=1"  method='post' id="{{cmd['name'][1:]}}">
 											<input name=_csrf_token type=hidden value="{{ csrf }}">
 											<input name="cmd_name" type="hidden" value="{{cmd['name']}}">
-											<textarea class="form-control cmd_message" name="cmd_message" rows="3" style="resize:vertical">{{cmd['message']}}</textarea>
+											<textarea class="form-control cmd_message" name="cmd_message" rows="3" style="resize:vertical;">{{cmd['message']}}</textarea>
 										</form>
 									</td>
-									<td><a href="#" id="edit_{{cmd['name'][1:]}}" class="btn btn-warning btn-xs"><i class="fa fa-pencil"></i> Edit</a></td>
-									<td><a href="{{url_for('delete_command', server_id=server.id, command=cmd['name'])}}" class="btn btn-danger btn-xs"><i class="fa fa-trash"></i> Delete</a></td>
+									<td>
+										<input name="roles" type="text" data-role="tagsinput" class="roles">
+									</td>
+									<td><a href="#" id="edit_{{cmd['name'][1:]}}" class="btn btn-warning btn-xs"><i class="fa fa-pencil"></i> Edit</a>
+										<a href="{{url_for('delete_command', server_id=server.id, command=cmd['name'])}}" class="btn btn-danger btn-xs"><i class="fa fa-trash"></i> Delete</a></td>
 									<script>
 $('#edit_{{cmd['name'][1:]}}').click(function(){
 	$('#{{cmd['name'][1:]}}').submit()
@@ -60,7 +63,29 @@ $('#edit_{{cmd['name'][1:]}}').click(function(){
 
 		</div>
 	</div>
+	<script>
+		$(function() {
+			var roles = new Bloodhound({
+				datumTokenize: Bloodhound.tokenizers.obj.whitespace('name'),
+				queryTokenizer: Bloodhound.tokenizers.whitespace,
+				local: {{guild_roles|tojson|safe}}
+			});
+			roles.initialize();
 
+			var elt =  $('.roles');
+			elt.tagsinput({
+				itemValue: 'id',
+				itemText: 'name',
+				typeaheadjs: {
+					name: 'roles',
+					displayKey: 'name',
+					source: roles.ttAdapter()
+				}
+			});
+			{% for role in roles %}
+				elt.tagsinput('add', {{role|tojson|safe}});
+			{% endfor %}
+	</script>
 <script>
 $(function(){
 	$(".cmd_message").mention({

@@ -6,10 +6,21 @@ log = logging.getLogger('discord')
 async def get_help_info(self, server):
     if self.fancy_name is None:
         self.fancy_name = type(self).__name__
+
+    commands = []
+    storage = await self.get_storage(server)
+    for cmd in self.commands.values():
+        if cmd._db_check:
+            check = await storage.get(cmd._db_name)
+            if not check:
+                continue
+        commands.append(cmd.info)
+    if hasattr(self, "get_commands"):
+        commands += await self.get_commands(server)
     payload = {
         'name': type(self).__name__,
         'fancy_name': self.fancy_name,
-        'commands': await self.get_commands(server)
+        'commands': commands
     }
     return payload
 
@@ -27,7 +38,7 @@ class Help(Plugin):
 
         help_payload = []
         for plugin in enabled_plugins:
-            if not isinstance(plugin, Help) and hasattr(plugin, 'get_commands'):
+            if not isinstance(plugin, Help):
                 help_info = await plugin.get_help_info(server)
                 help_payload.append(help_info)
 

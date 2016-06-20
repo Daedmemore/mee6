@@ -1,6 +1,6 @@
 from plugin import Plugin
+from decorators import bg_task
 import logging
-import asyncio
 import aiohttp
 import discord
 
@@ -107,35 +107,30 @@ class Reddit(Plugin):
 
         return all_subreddits_posts
 
-    async def on_ready(self):
-        while True:
+    @bg_task(30)
+    async def reddit_check(self):
+        all_subreddits_posts = await self.get_all_subreddits_posts()
+        for server in list(self.mee6.servers):
             try:
-                all_subreddits_posts = await self.get_all_subreddits_posts()
-                for server in list(self.mee6.servers):
-                    try:
-                        plugins = await self.mee6.db.redis.smembers(
-                            'plugins:'+server.id
-                        )
-                        if "Reddit" not in plugins:
-                            continue
+                plugins = await self.mee6.db.redis.smembers(
+                    'plugins:'+server.id
+                )
+                if "Reddit" not in plugins:
+                    continue
 
-                        storage = await self.get_storage(server)
-                        subreddits = await storage.smembers('subs')
-                        posts = {}
-                        for subreddit in subreddits:
-                            subreddit_posts = all_subreddits_posts.get(
-                                subreddit,
-                                []
-                            )
-                            posts[subreddit] = subreddit_posts
+                storage = await self.get_storage(server)
+                subreddits = await storage.smembers('subs')
+                posts = {}
+                for subreddit in subreddits:
+                    subreddit_posts = all_subreddits_posts.get(
+                        subreddit,
+                        []
+                    )
+                    posts[subreddit] = subreddit_posts
 
-                        await self.display_posts(posts,
-                                                 server)
-                    except Exception as e:
-                        log.info("An error occured in Reddit plugin with"
-                                 " server {}".format(server.id))
-                        log.info(e)
+                await self.display_posts(posts,
+                                         server)
             except Exception as e:
-                log.info("An error occured in Reddit plugin...Retrying...")
+                log.info("An error occured in Reddit plugin with"
+                         " server {}".format(server.id))
                 log.info(e)
-            await asyncio.sleep(30)

@@ -1,7 +1,10 @@
-from plugin import Plugin
 import logging
 
+from plugin import Plugin
+
+
 log = logging.getLogger('discord')
+
 
 class Commands(Plugin):
 

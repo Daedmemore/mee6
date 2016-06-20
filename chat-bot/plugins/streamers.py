@@ -1,12 +1,13 @@
 from plugin import Plugin
 from collections import defaultdict
+from decorators import bg_task
 import aiohttp
-import asyncio
 import logging
 import json
 import re
 
 log = logging.getLogger("discord")
+
 
 class Platform:
     def __init__(self, name, db_name=None):
@@ -15,6 +16,7 @@ class Platform:
 
     def collector(self, collector_func):
         self.collector = collector_func
+
 
 class Streamer:
     def __init__(self, name, display_name, link, stream_id):
@@ -28,15 +30,15 @@ class Streamer:
 """
 twitch_platform = Platform("twitch", db_name="streamers")
 
+
 @twitch_platform.collector
 async def twitch_collector(streamers):
     streamers = list(map(lambda s: s.replace(' ', '_'), streamers))
     live_streamers = []
     for i in range(0, len(streamers), 100):
         chunk = streamers[i:i+100]
-        url = "https://api.twitch.tv/kraken/streams?channel={}&limit=100".format(
-            ",".join(chunk)
-        )
+        url = "https://api.twitch.tv/"\
+            "kraken/streams?channel={}&limit=100".format(",".join(chunk))
         with aiohttp.ClientSession() as session:
             async with session.get(url) as resp:
                 result = await resp.json()
@@ -55,6 +57,7 @@ async def twitch_collector(streamers):
     HitBox
 """
 hitbox_platform = Platform("hitbox", db_name="hitbox_streamers")
+
 
 @hitbox_platform.collector
 async def hitbox_collector(streamers):
@@ -84,6 +87,7 @@ async def hitbox_collector(streamers):
     Beam
 """
 beam_platform = Platform("beam", db_name="beam_streamers")
+
 
 @beam_platform.collector
 async def beam_collector(streamers):
@@ -159,39 +163,36 @@ class Streamers(Plugin):
                 log.info(e)
         return data
 
-    async def on_ready(self):
-        while True:
-            try:
-                data = await self.get_live_streamers_by_servers()
-                for server_id, live_streamers in data.items():
-                    server = self.mee6.get_server(server_id)
-                    if not server:
-                        continue
+    @bg_task(30)
+    async def streamer_check(self):
+        data = await self.get_live_streamers_by_servers()
+        for server_id, live_streamers in data.items():
+            server = self.mee6.get_server(server_id)
+            if not server:
+                continue
 
-                    storage = await self.get_storage(server)
-                    channel_id = await storage.get('announcement_channel')
-                    announcement_channel = self.mee6.get_channel(channel_id) or server
-                    announcement_message = await storage.get('announcement_msg')
-                    for streamer in live_streamers:
-                        streamer_streams_id = await storage.smembers('check:'+streamer.link) or []
-                        check = streamer.stream_id in streamer_streams_id
-                        if check:
-                            continue
-                        try:
-                            await self.mee6.send_message(
-                                announcement_channel,
-                                announcement_message.replace(
-                                    '{streamer}',
-                                    streamer.name
-                                ).replace(
-                                    '{link}',
-                                    streamer.link
-                                )
-                            )
-                            await storage.sadd('check:'+streamer.link, streamer.stream_id)
-                        except Exception as e:
-                            log.info(e)
-            except Exception as e:
-                log.info("Problem on streaming plugin, trying again...")
-                log.info(e)
-            await asyncio.sleep(30)
+            storage = await self.get_storage(server)
+            channel_id = await storage.get('announcement_channel')
+            announcement_channel = self.mee6.get_channel(channel_id) or server
+            announcement_message = await storage.get('announcement_msg')
+            for streamer in live_streamers:
+                streamer_streams_id = await storage.smembers(
+                    'check:' + streamer.link
+                ) or []
+                check = streamer.stream_id in streamer_streams_id
+                if check:
+                    continue
+                try:
+                    await self.mee6.send_message(
+                        announcement_channel,
+                        announcement_message.replace(
+                            '{streamer}',
+                            streamer.name
+                        ).replace(
+                            '{link}',
+                            streamer.link
+                        )
+                    )
+                    await storage.sadd('check:'+streamer.link, streamer.stream_id)
+                except Exception as e:
+                    log.info(e)

@@ -5,6 +5,7 @@ import redis
 import json
 import binascii
 import datetime
+import time
 import logging
 import paypalrestsdk
 from math import floor
@@ -398,6 +399,16 @@ def select_server():
                            user=user, user_servers=user_servers)
 
 
+def get_invite_link(server_id):
+    url = "https://discordapp.com/oauth2/authorize?&client_id={}"\
+          "&scope=bot&permissions={}&guild_id={}&response_type=code"\
+          "&redirect_uri=http://{}/servers".format(OAUTH2_CLIENT_ID,
+                                                   '66321471',
+                                                   server_id,
+                                                   DOMAIN)
+    return url
+
+
 def server_check(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
@@ -405,14 +416,7 @@ def server_check(f):
         server_ids = db.smembers('servers')
 
         if str(server_id) not in server_ids:
-            url = "https://discordapp.com/oauth2/authorize?&client_id={}"\
-                  "&scope=bot&permissions={}&guild_id={}&response_type=code"\
-                  "&redirect_uri=http://{}/servers".format(
-                      OAUTH2_CLIENT_ID,
-                      '66321471',
-                      server_id,
-                      DOMAIN
-                  )
+            url = get_invite_link(server_id)
             return redirect(url)
 
         return f(*args, **kwargs)
@@ -492,23 +496,45 @@ def dashboard(server_id):
     user = get_user(session['api_token'])
     if not user:
         return redirect(url_for('logout'))
-    guilds = get_user_guilds(session['api_token'])
-    server = list(filter(lambda g: g['id'] == str(server_id), guilds))[0]
+    guild = get_guild(server_id)
+    if guild is None:
+        return redirect(get_invite_link(server_id))
+
     enabled_plugins = db.smembers('plugins:{}'.format(server_id))
     ignored = db.get('user:{}:ignored'.format(user['id']))
     notification = not ignored
 
-    buffs_base = 'buffs:'+server['id']+':'
+    buffs_base = 'buffs:'+guild['id']+':'
     music_buff = {'name': 'music',
                   'active': db.get(buffs_base+'music')
                   is not None,
                   'remaining': db.ttl(buffs_base+'music')}
-    server['buffs'] = [music_buff]
+    guild['buffs'] = [music_buff]
     return render_template('dashboard.html',
-                           server=server,
+                           server=guild,
                            enabled_plugins=enabled_plugins,
                            notification=notification)
 
+
+@app.route('/dashboard/<int:server_id>/member-list')
+@my_dash
+def member_list(server_id):
+    import io
+    import csv
+    members = get_guild_members(server_id)
+    if request.args.get('csv'):
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["username", "discriminator"])
+        for m in members:
+            writer.writerow([m['user']['username'],
+                             m['user']['discriminator']])
+        return Response(output.getvalue(),
+                        mimetype="text/csv",
+                        headers={"Content-disposition": "attachement; file"
+                                 "name=guild_{}.csv".format(server_id)})
+    else:
+        return jsonify({"members": members})
 
 @app.route('/dashboard/notification/<int:server_id>')
 @my_dash
@@ -656,6 +682,14 @@ def buy(server_id):
                 db.expire(item_key, item_buff_ttl+item['duration'])
 
     db.set('user:'+user['id']+':points', user['points']-item['price'])
+    purchase = {"item": item,
+                "buyer": {"id": user['id'],
+                          "name": user['username'],
+                          "discriminator": user['discriminator']},
+                "guild_id": str(server_id),
+                "timestamp": time.time()}
+    db.lpush("shop:buys", json.dumps(purchase))
+    db.lpush("shop:buys:{}".format(server_id), json.dumps(purchase))
     flash('Thanks for your purchase!', 'success')
     return redirect(url_for('shop', server_id=server_id))
 
@@ -934,6 +968,7 @@ def get_level_from_xp(xp):
 @app.route('/levels/<int:server_id>')
 def levels(server_id):
     is_admin = False
+    num = int(request.args.get('limit', 100))
     if session.get('api_token'):
         user = get_user(session['api_token'])
         if not user:
@@ -985,7 +1020,7 @@ def levels(server_id):
                            '#'
                        ],
                        start=0,
-                       num=100,
+                       num=num,
                        desc=True)
 
     players = []
@@ -1141,14 +1176,66 @@ def update_welcome(server_id):
     return redirect(url_for('plugin_welcome', server_id=server_id))
 
 """
-    Animu and Mango Plugin
+    Search
 """
 
+SEARCH_COMMANDS = [#{"name": 'google',
+                   # "description": "Search for anything on Google"},
+                   {"name": 'youtube',
+                    "description": "Search for videos on Youtube"},
+                   {"name": 'urban',
+                    "description": "Search for slang words on Urban"
+                    " Dictionnary "},
+                   #{"name": 'gimg',
+                   # "description": "Search for images on Google Image"},
+                   {"name": 'pokemon',
+                    "description": "Search for your favorite pokémons"},
+                   {"name": 'twitch',
+                    "description": "Search for your favorite twitch streamers"},
+                   {"name": 'imgur',
+                    "description": "Search for the dankest memes images on"
+                    " imgur"},
+                   #{"name": 'wiki',
+                   # "description": "Get smarter thanks to wikipedia"},
+                   {"name": 'manga',
+                    "description": "Search for your favorite mango from "
+                    "MyAnimeList"},
+                   {"name": 'anime',
+                    "description": "Search for your favorite animu from "
+                    "MyAnimeList"}]
 
-@app.route('/dashboard/<int:server_id>/animu')
-@plugin_page('AnimuAndMango')
-def plugin_animu(server_id):
-    return {}
+
+@app.route('/dashboard/<int:server_id>/search')
+@plugin_page('Search')
+def plugin_search(server_id):
+    enabled_commands = [cmd['name'] for cmd in SEARCH_COMMANDS
+                        if db.get("Search.{}:{}".format(server_id,
+                                                        cmd['name']))]
+    return {"enabled_commands": enabled_commands,
+            "commands": SEARCH_COMMANDS}
+
+
+@app.route('/dashboard/<int:server_id>/search/edit', methods=['POST'])
+@plugin_method
+def search_edit(server_id):
+    pipe = db.pipeline()
+
+    for cmd in SEARCH_COMMANDS:
+        pipe.delete("Search.{}:{}".format(server_id, cmd['name']))
+
+    for cmd in SEARCH_COMMANDS:
+        if request.form.get(cmd['name']):
+            pipe.set("Search.{}:{}".format(server_id, cmd['name']), 1)
+
+    result = pipe.execute()
+
+    if result:
+        flash("Search plugin settings updated! ;)", "success")
+    else:
+        flash("An error occured :( ...", "warning")
+
+    return redirect(url_for("plugin_search", server_id=server_id))
+
 
 """
     Git Plugin

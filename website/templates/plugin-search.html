@@ -1,0 +1,39 @@
+{% extends 'dash_base.html' %}
+{% block dash_content %}
+	<div class="container">
+		<div class="row">
+			{% include 'sidebar.html' %}
+			{% set csrf =  csrf_token() %}
+				<div class="col-md-8">
+					<h3>Search <a href="?disable=1" class="btn btn-warning btn-xs">Disable</a></h3>
+					{% include 'flash.html' %}
+					<form id="levels" method="POST" action="{{url_for('search_edit', server_id=server['id'])}}">
+						{% for cmd in commands %}
+						<div class="form-group">
+							<input name=_csrf_token type=hidden value="{{ csrf }}">
+							<h3>!{{cmd.name}}
+							<div style="float: right;">
+								<div class="onoffswitch">
+										<input type="checkbox" name="{{cmd.name}}" class="onoffswitch-checkbox" id="{{cmd.name}}" {% if cmd.name in enabled_commands %} checked {% endif %}>
+										<label class="onoffswitch-label" for="{{cmd.name}}">
+												<span class="onoffswitch-inner"></span>
+												<span class="onoffswitch-switch"></span>
+										</label>
+								</div>
+								</div>
+							</h3>
+							<div class="well well-sm">
+								<strong>{{cmd.description}}
+							</div>
+						{% endfor %}
+				 				 <br />
+				 <button type="submit" class="btn btn-primary">Update</button>
+						</div>
+					</form>
+				</div>
+
+		</div>
+	</div>
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/typeahead.js/0.11.1/typeahead.bundle.min.js"></script>
+{% endblock %}

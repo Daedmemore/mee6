@@ -130,7 +130,7 @@ class Mee6(discord.Client):
 
         enabled_plugins = await self.get_plugins(server)
         for plugin in enabled_plugins:
-            self.loop.create_task(plugin.on_message(message))
+            self.loop.create_task(plugin._on_message(message))
 
     async def on_message_edit(self, before, after):
         if before.channel.is_private:

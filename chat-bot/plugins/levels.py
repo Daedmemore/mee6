@@ -1,8 +1,7 @@
 from plugin import Plugin
 from random import randint
+from decorators import command, bg_task
 import logging
-import discord
-import asyncio
 log = logging.getLogger('discord')
 
 
@@ -16,23 +15,6 @@ def check_add_role_perm(adder_roles, role):
 class Levels(Plugin):
 
     fancy_name = 'Levels'
-
-    async def get_commands(self, server):
-        commands = [
-            {
-                'name': '!levels',
-                'description': 'Gives you the server leaderboard.'
-            },
-            {
-                'name': '!rank',
-                'description': 'Gives you your xp, level and rank.'
-            },
-            {
-                'name': '!rank @username',
-                'description': 'Gives username\'s xp, level and rank.'
-            }
-        ]
-        return commands
 
     @staticmethod
     def _get_level_xp(n):
@@ -56,106 +38,100 @@ class Levels(Plugin):
 
         return False
 
-    async def on_message(self, message):
-        if message.author.id == self.mee6.user.id:
-            return
+    async def is_not_banned(self, member):
+        return not await self.is_ban(member)
 
-        if message.content == '!levels':
-            log.info('{}#{}@{} >> {}'.format(
-                message.author.name,
-                message.author.discriminator,
-                message.server.name,
-                message.clean_content
-            ))
-            url = 'http://mee6.xyz/levels/{}'.format(message.server.id)
-            response = "Go check **{}**'s leaderboard here"\
-                ": {} ! :wink:".format(message.server.name,
-                                       url)
-            await self.mee6.send_message(message.channel, response)
-            return
+    @command(pattern="!levels",
+             description="Get a link to the server leaderboard",
+             banned_roles="banned_roles")
+    async def levels(self, message, args):
+        url = "http://mee6.xyz/levels/" + message.server.id
+        response = "Go check **" + message.server.name + "**'s leaderboard: "
+        response += url + " :wink: "
+        await self.mee6.send_message(message.channel, response)
 
-        is_ban = await self.is_ban(message.author)
-        if is_ban:
-            return
+    @command(pattern="(^!rank$)|(^!rank <@!?[0-9]*>$)",
+             description="Get a player info and rank",
+             cooldown="cooldown",
+             banned_roles="banned_roles")
+    async def rank(self, message, args):
+        if message.mentions:
+            player = message.mentions[0]
+        else:
+            player = message.author
 
-        if message.content.startswith('!rank'):
-            log.info('{}#{}@{} >> {}'.format(
-                message.author.name,
-                message.author.discriminator,
-                message.server.name,
-                message.clean_content
-            ))
-            storage = await self.get_storage(message.server)
+        player_info = await self.get_player_info(player)
 
-            cooldown_duration = int(await storage.get('cooldown') or 0)
-            cooldown = await storage.get(
-                'player:'+message.author.id+':cooldown'
-            )
-            if cooldown is not None:
-                return
-            await storage.set('player:{}:cooldown'.format(message.author.id),
-                              '1')
-            await storage.expire('player:{}:cooldown'.format(message.author.id),
-                                 cooldown_duration)
-
-            if message.mentions != []:
-                player = message.mentions[0]
-            else:
-                player = message.author
-            players = await storage.smembers('players')
-            if player.id not in players:
-                resp = "{}, It seems like you are not ranked. "\
-                    "Start talking in the chat to get ranked :wink:."
-                if player != message.author:
-                    resp = "{}, It seems like " + player.mention + \
-                        " is not ranked :cry:."
-                await self.mee6.send_message(message.channel,
-                                             resp.format(message.author.mention)
-                                             )
-                return
-
-            player_total_xp = int(await storage.get('player:{}:xp'.format(
-                player.id)
-            ))
-            player_lvl = self._get_level_from_xp(player_total_xp)
-            x = 0
-            for l in range(0, int(player_lvl)):
-                x += self._get_level_xp(l)
-            remaining_xp = int(player_total_xp - x)
-            level_xp = Levels._get_level_xp(player_lvl)
-            players = await storage.sort(
-                'players'.format(message.server.id),
-                by='player:*:xp'.format(message.server.id),
-                offset=0,
-                count=-1)
-            players = list(reversed(players))
-            player_rank = players.index(player.id)+1
-
+        if not player_info:
+            resp = "{}, It seems like you are not ranked. "\
+                "Start talking in the chat to get ranked :wink:."
             if player != message.author:
-                response = '{} : **{}**\'s rank > **LEVEL {}** | **XP {}/{}** '\
-                    '| **TOTAL XP {}** | **Rank {}/{}**'.format(
-                        message.author.mention,
-                        player.name,
-                        player_lvl,
-                        remaining_xp,
-                        level_xp,
-                        player_total_xp,
-                        player_rank,
-                        len(players)
-                    )
-            else:
-                response = '{} : **LEVEL {}** | **XP {}/{}** | '\
-                    '**TOTAL XP {}** | **Rank {}/{}**'.format(
-                        player.mention,
-                        player_lvl,
-                        remaining_xp,
-                        level_xp,
-                        player_total_xp,
-                        player_rank,
-                        len(players)
-                    )
+                resp = "{}, It seems like " + player.mention + \
+                    " is not ranked :cry:."
+            await self.mee6.send_message(message.channel,
+                                        resp.format(message.author.mention))
+            return
 
-            await self.mee6.send_message(message.channel, response)
+        if player != message.author:
+            response = '{} : **{}**\'s rank > **LEVEL {}** | **XP {}/{}** '\
+                '| **TOTAL XP {}** | **Rank {}/{}**'.format(
+                    message.author.mention,
+                    player.name,
+                    player_info['lvl'],
+                    player_info['remaining_xp'],
+                    player_info['level_xp'],
+                    player_info['total_xp'],
+                    player_info['rank'],
+                    player_info['total_players']
+                )
+        else:
+            response = '{} : **LEVEL {}** | **XP {}/{}** | '\
+                '**TOTAL XP {}** | **Rank {}/{}**'.format(
+                    player.mention,
+                    player_info['lvl'],
+                    player_info['remaining_xp'],
+                    player_info['level_xp'],
+                    player_info['total_xp'],
+                    player_info['rank'],
+                    player_info['total_players']
+                )
+
+        await self.mee6.send_message(message.channel, response)
+
+    async def get_player_info(self, member):
+        server = member.server
+        storage = await self.get_storage(server)
+        players = await storage.smembers('players')
+        if member.id not in players:
+            return None
+
+        player_total_xp = int(await storage.get('player:' + member.id + ':xp'))
+        player_lvl = self._get_level_from_xp(player_total_xp)
+        x = 0
+        for l in range(0, int(player_lvl)):
+            x += self._get_level_xp(l)
+        remaining_xp = int(player_total_xp - x)
+        level_xp = Levels._get_level_xp(player_lvl)
+        players = await storage.sort('players',
+                                     by='player:*:xp',
+                                     offset=0,
+                                     count=-1)
+        players = list(reversed(players))
+        player_rank = players.index(member.id)+1
+
+        return {"total_xp": player_total_xp,
+                "lvl": player_lvl,
+                "remaining_xp": remaining_xp,
+                "level_xp": level_xp,
+                "rank": player_rank,
+                "total_players": len(players)}
+
+    async def on_message(self, message):
+        if message.author.id == self.mee6.user.id or message.author.bot:
+            return
+
+        is_banned = await self.is_ban(message.author)
+        if is_banned:
             return
 
         storage = await self.get_storage(message.server)
@@ -241,15 +217,8 @@ class Levels(Plugin):
         return rewards
 
     async def add_role(self, member, role):
-        try:
-            if check_add_role_perm(member.server.me.roles, role):
-                await self.mee6.add_roles(member, role)
-        except discord.errors.HTTPException as e:
-            if e.response.status != 429:
-                raise(e)
-            retry = float(e.response.headers['Retry-After']) / 1000.0
-            await asyncio.sleep(retry)
-            return (await self.add_role(member, role))
+        if check_add_role_perm(member.server.me.roles, role):
+            return await self.mee6.add_roles(member, role)
 
     async def update_rewards(self, server):
         rewards = await self.get_rewards(server)
@@ -275,17 +244,16 @@ class Levels(Plugin):
                                                                    role.id))
                     log.info(e)
 
-    async def on_ready(self):
-        while True:
-            for server in list(self.mee6.servers):
-                plugin_enabled = 'Levels' in await self.mee6.db.redis.smembers(
-                    'plugins:'+server.id
-                )
-                if not plugin_enabled:
-                    continue
-                try:
-                    await self.update_rewards(server)
-                except Exception as e:
-                    log.info('Cannot update the rewards for server '+server.id)
-                    log.info(e)
-            await asyncio.sleep(60)
+    @bg_task(60)
+    async def update_rewards_job(self):
+        for server in list(self.mee6.servers):
+            plugin_enabled = 'Levels' in await self.mee6.db.redis.smembers(
+                'plugins:'+server.id
+            )
+            if not plugin_enabled:
+                continue
+            try:
+                await self.update_rewards(server)
+            except Exception as e:
+                log.info('Cannot update the rewards for server '+server.id)
+                log.info(e)

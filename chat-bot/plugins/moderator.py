@@ -1,39 +1,12 @@
 from plugin import Plugin
 from functools import wraps
+from decorators import command
 
 import logging
 import asyncio
 import re
 
 logs = logging.getLogger("discord")
-
-
-def command(pattern, db_name):
-    def actual_decorator(func):
-        @wraps(func)
-        async def wrapper(self, message):
-            # Check command syntax
-            match = re.match(pattern, message.content)
-            if not match:
-                return
-
-            # Get the args
-            args = match.groups()
-            server = message.server
-
-            # Check if command enabled
-            storage = await self.get_storage(server)
-            check = await storage.get(db_name)
-            if not check:
-                return
-
-            authorized = await self.check_auth(message.author)
-            if not authorized:
-                return
-
-            await func(self, message, args)
-        return wrapper
-    return actual_decorator
 
 
 class Moderator(Plugin):
@@ -51,7 +24,8 @@ class Moderator(Plugin):
                 break
         return authorized
 
-    @command(r'^!clear ([0-9]*)$', 'clear')
+    @command(pattern='^!clear ([0-9]*)$', db_check=True, db_name="clear",
+             require_one_of_roles="roles")
     async def clear_num(self, message, args):
         number = min(int(args[0]), 1000)
         if number < 1:
@@ -73,7 +47,8 @@ class Moderator(Plugin):
 
         await self.mee6.delete_message(confirm_message)
 
-    @command(r'^!clear <@!?([0-9]*)>$', 'clear')
+    @command(pattern='^!clear <@!?([0-9]*)>$', db_check=True, db_name='clear',
+             require_one_of_roles="roles")
     async def clear_user(self, message, args):
         if not message.mentions:
             return
@@ -94,7 +69,8 @@ class Moderator(Plugin):
         await asyncio.sleep(3)
         await self.mee6.delete_message(confirm)
 
-    @command(r'^!mute <@!?([0-9]*)>$', 'mute')
+    @command(pattern='^!mute <@!?([0-9]*)>$', db_check=True,
+             require_one_of_roles="roles")
     async def mute(self, message, args):
         if not message.mentions:
             return
@@ -114,10 +90,11 @@ class Moderator(Plugin):
         )
         await self.mee6.send_message(
             message.channel,
-            "{} is now :speak_no_evil: here!".format(member.mention)
+            "{} is now 🙊here !".format(member.mention)
         )
 
-    @command(r'^!unmute <@!?([0-9]*)>$', 'mute')
+    @command(pattern='^!unmute <@!?([0-9]*)>$', db_name="mute", db_check=True,
+             require_one_of_roles="roles")
     async def unmute(self, message, args):
         if not message.mentions:
             return
@@ -138,17 +115,18 @@ class Moderator(Plugin):
         )
         await self.mee6.send_message(
             message.channel,
-            "{} is no longer :speak_no_evil: here! He/she "
-            "can speak :monkey_face:!".format(member.mention)
+            "{} is no longer 🙊  here! He/sh"
+            "can speak 🐵 now!".format(member.mention)
         )
 
-    @command(r'!slowmode ([0-9]*)', 'slowmode')
+    @command(pattern='!slowmode ([0-9]*)', db_check=True,
+             require_one_of_roles="roles")
     async def slowmode(self, message, args):
         num = int(args[0])
         if num == 0:
             await self.mee6.send_message(
                 message.channel,
-                "The slow mode interval cannot be 0 :wink:."
+                "The slow mode interval cannot be 0 😉"
             )
             return
         storage = await self.get_storage(message.server)
@@ -164,13 +142,13 @@ class Moderator(Plugin):
         )
         await self.mee6.send_message(
             message.channel,
-            "{} is now in :snail: mode. ({} seconds)".format(
+            "{} is now in 🐌 mode. ({} seconds)".format(
                 message.channel.mention,
                 num
             )
         )
 
-    @command(r'^!slowoff$', 'slowmode')
+    @command(db_check=True, db_name="slowmode", require_one_of_roles="roles")
     async def slowoff(self, message, args):
         storage = await self.get_storage(message.server)
         # Get the slowed_channels
@@ -196,7 +174,7 @@ class Moderator(Plugin):
         # Confirm message
         await self.mee6.send_message(
             message.channel,
-            "{} is no longer in :snail: mode :wink:.".format(
+            "{} is no longer in 🐌 mode 😉.".format(
                 message.channel.mention
             )
         )
@@ -265,7 +243,7 @@ class Moderator(Plugin):
                 await self.mee6.delete_message(message)
                 msg = await self.mee6.send_message(
                     message.channel,
-                    "{}, **LANGUAGE!!!** :rage:".format(
+                    "{}, **LANGUAGE!!!**😡".format(
                         message.author.mention
                     )
                 )
@@ -279,12 +257,5 @@ class Moderator(Plugin):
     async def on_message(self, message):
         if message.author.id == self.mee6.user.id:
             return
-
-        await self.clear_num(message)
-        await self.clear_user(message)
         await self.banned_words(message)
-        await self.mute(message)
-        await self.unmute(message)
-        await self.slowmode(message)
-        await self.slowoff(message)
         await self.slow_check(message)

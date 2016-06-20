@@ -34,6 +34,15 @@
 	server=server,
 	enabled_plugins=enabled_plugins
 	)}}
+	{{ plugin.view(
+	'Search',
+	icon='search',
+	pretty_name='Search Anything',
+	view='plugin_search',
+	description='Search for whatever you want on imgur, youtube, MyAnimeList and many more websites...',
+	server=server,
+	enabled_plugins=enabled_plugins
+	)}}
 {{ plugin.view(
 	'Help',
 	icon='question',
@@ -74,15 +83,6 @@
 	icon="book",
 	view='plugin_logs',
 	description='Logs all the messages of your server!',
-	server=server,
-	enabled_plugins=enabled_plugins
-	)}}
-	{{ plugin.view(
-	'AnimuAndMango',
-	icon='angellist',
-	pretty_name='Animu and Mango',
-	view='plugin_animu',
-	description='Search the web for your favorite anime and manga.',
 	server=server,
 	enabled_plugins=enabled_plugins
 	)}}
