@@ -99,6 +99,6 @@ RUN git clone git://source.ffmpeg.org/ffmpeg.git \
     && cd /tmp \
     && rm -rf /tmp/ffmpeg
 
-COPY . /
+ADD . /
 RUN npm install
 CMD [ "npm", "start" ]
